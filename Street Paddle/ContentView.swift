@@ -1,24 +1,27 @@
-//
-//  ContentView.swift
-//  Street Paddle
-//
-//  Created by Carlos Mosquera on 7/31/24.
-//
-
 import SwiftUI
+import FirebaseAuth
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @State private var isUserAuthenticated = false
 
-#Preview {
-    ContentView()
+    var body: some View {
+        Group {
+            if isUserAuthenticated {
+                MainView(isUserAuthenticated: $isUserAuthenticated)
+            } else {
+                LoginView(isUserAuthenticated: $isUserAuthenticated)
+            }
+        }
+        .onAppear {
+            checkAuthentication()
+        }
+    }
+
+    func checkAuthentication() {
+        if Auth.auth().currentUser != nil {
+            isUserAuthenticated = true
+        } else {
+            isUserAuthenticated = false
+        }
+    }
 }
