@@ -45,7 +45,7 @@ struct ProductView: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color.white)
+        .background(Color.black)
         .cornerRadius(10)
         .shadow(radius: 5)
     }

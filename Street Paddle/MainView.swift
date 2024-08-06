@@ -16,6 +16,7 @@ struct MainView: View {
                     .ignoresSafeArea()
 
                 VStack {
+                    Spacer().frame(width: 0, height: 0.0, alignment: .topLeading)
 
                     Text("STREET PADDLE")
                         .frame(height: 0.0)
@@ -29,7 +30,8 @@ struct MainView: View {
 //                        .offset(x: 0.0, y: -80.0)
 
                     NavigationLink(destination: PublicMessagesView()) {
-                        HStack {
+
+                        HStack() {
                             Text("📢")
                             Text("Announcements")
                         }
@@ -41,10 +43,12 @@ struct MainView: View {
                         .cornerRadius(15.0)
                     }
 
-                    NavigationLink(destination: PrivateMessagesView()) {
+                    NavigationLink(destination: InboxView()) {
                         HStack {
+
                             Text("💬")
                             Text("DMs")
+
                         }
                         .font(.headline)
                         .foregroundColor(.white)
@@ -66,6 +70,8 @@ struct MainView: View {
                         .background(Color.blue)
                         .cornerRadius(15.0)
                     }
+                    
+                   
 
                     HStack {
                         Text("📹")
@@ -76,18 +82,35 @@ struct MainView: View {
                     .frame(width: 200.0, height: 45.0)
                     .background(Color.red)
                     .cornerRadius(15.0)
+                    
+                    NavigationLink(destination: TournamentsView()) {
+                        HStack {
+                            Text("🎾")
+                            Text("Tournaments")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(width: 200.0, height: 45.0)
+                        .background(Color.blue)
+                        .cornerRadius(15.0)
+                    }
                 }
 
                 VStack {
-                    
-                    Text(username)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding()
-                        .ignoresSafeArea()
+
+                    HStack {                       
+//                        Spacer()
+                        Text(username)
+                            .font(.system(size: 26.0))
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+//                            .padding()
+//                            .ignoresSafeArea()
+                    }
                     
                     HStack {
+                        
                         Spacer()
                         Button(action: logOut) {
                             Text("Log Out")

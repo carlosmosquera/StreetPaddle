@@ -62,6 +62,7 @@ struct SignUpView: View {
         }
     }
 
+  
     func signUp() {
         guard password == confirmPassword else {
             errorMessage = "Passwords do not match"
@@ -75,7 +76,9 @@ struct SignUpView: View {
                 guard let user = result?.user else { return }
                 let username = email.components(separatedBy: "@").first ?? ""
                 let db = Firestore.firestore()
+                
                 db.collection("users").document(user.uid).setData([
+                    "id": user.uid,
                     "username": username,
                     "email": email
                 ]) { error in
@@ -88,6 +91,8 @@ struct SignUpView: View {
             }
         }
     }
+
+
 }
 
 #Preview {
