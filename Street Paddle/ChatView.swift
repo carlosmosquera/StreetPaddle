@@ -7,22 +7,11 @@ struct ChatView: View {
     @State private var chatMessages = [Message]()
     @State private var newMessageText = ""
     @State private var senderId: String?
-    @State private var recipientUsername: String?
+    @State private var recipientName: String?
     @Namespace private var scrollNamespace
 
     var body: some View {
         VStack {
-            // Recipient username at the top center
-            if let recipientUsername = recipientUsername {
-                Text(recipientUsername)
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
-                    .padding(.top)
-            }
-            
             ScrollViewReader { scrollView in
                 ScrollView {
                     VStack {
@@ -36,10 +25,17 @@ struct ChatView: View {
                                         .cornerRadius(8)
                                         .foregroundColor(.white)
                                 } else {
-                                    Text(chatMessage.text)
-                                        .padding()
-                                        .background(Color.gray.opacity(0.2))
-                                        .cornerRadius(8)
+                                    VStack(alignment: .leading) {
+                                        if let recipientName = recipientName {
+                                            Text(recipientName)
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                        Text(chatMessage.text)
+                                            .padding()
+                                            .background(Color.gray.opacity(0.2))
+                                            .cornerRadius(8)
+                                    }
                                     Spacer()
                                 }
                             }
@@ -90,7 +86,7 @@ struct ChatView: View {
                 }
                 
                 self.senderId = document.documentID
-                self.recipientUsername = senderUsername // Set recipientUsername
+                self.recipientName = document.data()["name"] as? String // Set recipientName
 
                 // Fetch chat messages between current user and the sender
                 fetchChatMessages()
@@ -141,6 +137,7 @@ struct ChatView: View {
         }
     }
 }
+
 #Preview {
     ChatView(senderUsername: "Papito")
 }

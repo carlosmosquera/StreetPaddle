@@ -4,10 +4,12 @@ import FirebaseFirestore
 
 struct SignUpView: View {
     @Binding var isUserAuthenticated: Bool
+    @State private var name = ""
     @State private var email = ""
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var errorMessage = ""
+    @State private var showVerificationAlert = false
 
     var body: some View {
         ZStack {
@@ -24,11 +26,18 @@ struct SignUpView: View {
                     .padding()
                     .offset(x: 0.0, y: -20.0)
 
-                TextField("Email", text: $email)
+                TextField("name", text: $name)
                     .padding()
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(5.0)
                     .padding([.leading, .bottom, .trailing], 20)
+
+                TextField("email", text: $email)
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(5.0)
+                    .padding([.leading, .bottom, .trailing], 20)
+
 
                 SecureField("Password", text: $password)
                     .padding()
@@ -59,40 +68,61 @@ struct SignUpView: View {
                 }
             }
             .padding()
+            .alert(isPresented: $showVerificationAlert) {
+                Alert(
+                    title: Text("Verification Email Sent"),
+                    message: Text("Please check your email to verify your account."),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
         }
     }
 
-  
     func signUp() {
+        guard !name.isEmpty else {
+            errorMessage = "Name cannot be empty"
+            return
+        }
+
         guard password == confirmPassword else {
             errorMessage = "Passwords do not match"
             return
         }
+        
+        let lowercasedEmail = email.lowercased()
+        let lowercasedName = name.lowercased()
 
-        Auth.auth().createUser(withEmail: email, password: password) { result, error in
+        Auth.auth().createUser(withEmail: lowercasedEmail, password: password) { result, error in
             if let error = error {
                 errorMessage = error.localizedDescription
             } else {
                 guard let user = result?.user else { return }
-                let username = email.components(separatedBy: "@").first ?? ""
-                let db = Firestore.firestore()
                 
-                db.collection("users").document(user.uid).setData([
-                    "id": user.uid,
-                    "username": username,
-                    "email": email
-                ]) { error in
+                user.sendEmailVerification { error in
                     if let error = error {
                         errorMessage = error.localizedDescription
                     } else {
-                        isUserAuthenticated = true
+                        // Save user data to Firestore
+                        let username = lowercasedEmail.components(separatedBy: "@").first ?? ""
+                        let db = Firestore.firestore()
+                        db.collection("users").document(user.uid).setData([
+                            "id": user.uid,
+                            "name": lowercasedName,
+                            "username": username,
+                            "email": lowercasedEmail
+                        ]) { error in
+                            if let error = error {
+                                errorMessage = error.localizedDescription
+                            } else {
+                                // Notify user to check email
+                                showVerificationAlert = true
+                            }
+                        }
                     }
                 }
             }
         }
     }
-
-
 }
 
 #Preview {

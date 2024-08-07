@@ -8,7 +8,6 @@ struct LoginView: View {
     @State private var errorMessage = ""
     @State private var showSignUp = false
 
-
     var body: some View {
         ZStack {
             Image(.court)
@@ -18,21 +17,17 @@ struct LoginView: View {
                 .ignoresSafeArea()
 
             VStack {
-//                Image(.spLogoBlack)
-//                    .ignoresSafeArea()
-//                    .padding()
-//                    .offset(x: 0, y: -60)
-                
                 Text("STREET PADDLE")
                     .frame(height: 0.0)
                     .offset(x: 0.0, y: -80.0)
                     .font(.custom("Longhaul", size: 45))
 
-                TextField("Email", text: $email)
+                TextField("email", text: $email)
                     .padding()
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(5.0)
                     .padding([.leading, .bottom, .trailing], 20)
+
 
                 SecureField("Password", text: $password)
                     .padding()
@@ -51,15 +46,15 @@ struct LoginView: View {
                 }
                 
                 Button(action: {
-                               showSignUp.toggle()
-                           }) {
-                               Text("Don't have an account? Sign Up")
-                                   .foregroundColor(.blue)
-                                   .padding()
-                           }
-                           .sheet(isPresented: $showSignUp) {
-                               SignUpView(isUserAuthenticated: $isUserAuthenticated)
-                           }
+                    showSignUp.toggle()
+                }) {
+                    Text("Don't have an account? Sign Up")
+                        .foregroundColor(.blue)
+                        .padding()
+                }
+                .sheet(isPresented: $showSignUp) {
+                    SignUpView(isUserAuthenticated: $isUserAuthenticated)
+                }
 
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
@@ -72,11 +67,18 @@ struct LoginView: View {
     }
 
     func login() {
-        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+        let lowercasedEmail = email.lowercased()
+
+        Auth.auth().signIn(withEmail: lowercasedEmail, password: password) { result, error in
             if let error = error {
                 errorMessage = error.localizedDescription
             } else {
-                isUserAuthenticated = true
+                guard let user = result?.user else { return }
+                if user.isEmailVerified {
+                    isUserAuthenticated = true
+                } else {
+                    errorMessage = "Please verify your email before logging in."
+                }
             }
         }
     }

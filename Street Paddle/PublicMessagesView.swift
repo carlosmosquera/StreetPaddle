@@ -14,14 +14,13 @@ struct PublicMessagesView: View {
                         Section(header: Text(date)
                                     .font(.headline)
                                     .foregroundColor(.white)
-//                                    .padding()
                                     .padding(.horizontal)
                                     .background(Color.green)
                                     .cornerRadius(10)
                                    ){
                             ForEach(groupedMessages[date] ?? []) { message in
                                 VStack(alignment: .leading) {
-                                    Text(message.senderUsername)
+                                    Text(message.senderName)  // Display the name instead of username
                                         .font(.subheadline)
                                         .foregroundColor(.green)
                                         .multilineTextAlignment(.leading)
@@ -40,15 +39,13 @@ struct PublicMessagesView: View {
                                 .background(Color.green.opacity(0.1))
                                 .cornerRadius(10)
                                 .shadow(radius: 1)
-//                                .offset(x: /*@START_MENU_TOKEN@*/-100.0/*@END_MENU_TOKEN@*/, y: /*@START_MENU_TOKEN@*/10.0/*@END_MENU_TOKEN@*/)
                             }
                         }
-                                   .padding(.horizontal)
+                        .padding(.horizontal)
                     }
                 }
                 .padding()
                 .frame(width: 400.0)
-                
             }
             .frame(width: 400.0)
             
@@ -98,18 +95,18 @@ struct PublicMessagesView: View {
         let db = Firestore.firestore()
         db.collection("users").document(user.uid).getDocument { document, error in
             if let error = error {
-                print("Error fetching sender username: \(error.localizedDescription)")
+                print("Error fetching sender name: \(error.localizedDescription)")
                 return
             }
-            guard let document = document, document.exists, let data = document.data(), let username = data["username"] as? String else {
-                print("Error fetching username")
+            guard let document = document, document.exists, let data = document.data(), let name = data["name"] as? String else {
+                print("Error fetching name")
                 return
             }
             
             db.collection("publicMessages").addDocument(data: [
                 "content": message,
                 "timestamp": Timestamp(date: Date()),
-                "senderUsername": username
+                "senderName": name  // Use the name field
             ]) { error in
                 if let error = error {
                     print("Error sending message: \(error.localizedDescription)")
@@ -125,7 +122,7 @@ struct PublicMessage: Identifiable, Codable {
     @DocumentID var id: String?
     var content: String
     var timestamp: Timestamp
-    var senderUsername: String
+    var senderName: String  // Add the senderName field
 }
 
 private let dateFormatter: DateFormatter = {
@@ -139,7 +136,6 @@ private let timeFormatter: DateFormatter = {
     formatter.timeStyle = .short
     return formatter
 }()
-
 
 #Preview {
     PublicMessagesView()

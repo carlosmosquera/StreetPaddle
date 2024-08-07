@@ -10,45 +10,51 @@ struct Message: Identifiable, Codable, Equatable {
     var receiverUsername: String
     var text: String
     var timestamp: Timestamp
+    var isRead: Bool = false
 }
-
 
 struct User: Identifiable, Codable {
     @DocumentID var id: String?
     var username: String
     var email: String
+    var name: String // Add name field
 }
-
 
 struct InboxView: View {
     @State private var messages = [Message]()
+    @State private var userNames = [String: String]()
     @State private var showingComposeMessage = false
     @State private var refreshMessages = false
     @State private var currentUsername = ""
     @State private var selectedSenderUsername: String?
+    @State private var unreadMessageCount = 0
 
     var body: some View {
         NavigationView {
             VStack {
-                Text("Welcome, \(currentUsername)")
-                    .font(.headline)
-                    .padding()
-                
                 List {
                     ForEach(groupedMessages) { messageGroup in
                         NavigationLink(
-                            destination: ChatView(senderUsername: messageGroup.senderUsername),
+                            destination: ChatView(senderUsername: messageGroup.senderUsername)
+                                .onAppear {
+                                    markMessagesAsRead(from: messageGroup.senderUsername)
+                                },
                             tag: messageGroup.senderUsername,
                             selection: $selectedSenderUsername
                         ) {
                             VStack(alignment: .leading) {
-                                Text(messageGroup.senderUsername)
+                                Text(userNames[messageGroup.senderUsername] ?? messageGroup.senderUsername)
                                     .font(.headline)
                                 Text(messageGroup.latestMessage.text)
                                     .lineLimit(1)
                                     .font(.subheadline)
                                 Text(messageGroup.latestMessage.timestamp.dateValue(), style: .time)
                                     .font(.caption)
+                                if messageGroup.latestMessage.isRead == false {
+                                    Text("Unread")
+                                        .foregroundColor(.red)
+                                        .font(.caption)
+                                }
                             }
                             .padding()
                         }
@@ -71,10 +77,13 @@ struct InboxView: View {
                     fetchMessages()
                     refreshMessages = false
                 }
-            }
-            .onAppear {
-                fetchCurrentUser()
-                fetchMessages()
+                .onAppear {
+                    fetchCurrentUser()
+                    fetchMessages()
+                }
+                .onChange(of: selectedSenderUsername) { _ in
+                    fetchMessages()
+                }
             }
         }
     }
@@ -97,40 +106,37 @@ struct InboxView: View {
         let userId = Auth.auth().currentUser?.uid ?? ""
 
         db.collection("messages")
-            .whereField("receiverId", isEqualTo: userId) // Fetch only messages where the current user is the receiver
-            .getDocuments { sentSnapshot, sentError in
-                if let sentError = sentError {
-                    print(sentError.localizedDescription)
+            .whereField("receiverId", isEqualTo: userId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print(error.localizedDescription)
                     return
                 }
 
-                db.collection("messages")
-                    .whereField("senderId", isEqualTo: userId) // Fetch only messages where the current user is the sender
-                    .getDocuments { receivedSnapshot, receivedError in
-                        if let receivedError = receivedError {
-                            print(receivedError.localizedDescription)
-                            return
-                        }
+                guard let documents = snapshot?.documents else { return }
+                let fetchedMessages = documents.compactMap { doc in
+                    try? doc.data(as: Message.self)
+                }.sorted(by: { $0.timestamp.dateValue() > $1.timestamp.dateValue() })
 
-                        var combinedMessages = [Message]()
-
-                        if let sentSnapshot = sentSnapshot {
-                            let sentMessages = sentSnapshot.documents.compactMap { doc in
-                                try? doc.data(as: Message.self)
-                            }
-                            combinedMessages.append(contentsOf: sentMessages)
-                        }
-
-                        if let receivedSnapshot = receivedSnapshot {
-                            let receivedMessages = receivedSnapshot.documents.compactMap { doc in
-                                try? doc.data(as: Message.self)
-                            }
-                            combinedMessages.append(contentsOf: receivedMessages)
-                        }
-
-                        self.messages = combinedMessages.sorted(by: { $0.timestamp.dateValue() > $1.timestamp.dateValue() })
-                    }
+                self.messages = fetchedMessages
+                self.unreadMessageCount = fetchedMessages.filter { !$0.isRead }.count
+                fetchSenderNames(for: fetchedMessages)
             }
+    }
+
+    func fetchSenderNames(for messages: [Message]) {
+        let db = Firestore.firestore()
+        let senderIds = Array(Set(messages.map { $0.senderId }))
+
+        senderIds.forEach { senderId in
+            db.collection("users").document(senderId).getDocument { document, error in
+                if let document = document, document.exists, let data = document.data(), let name = data["name"] as? String {
+                    DispatchQueue.main.async {
+                        self.userNames[senderId] = name
+                    }
+                }
+            }
+        }
     }
 
     var groupedMessages: [MessageGroup] {
@@ -147,7 +153,7 @@ struct InboxView: View {
 
         offsets.forEach { index in
             let message = messages[index]
-            if message.senderId == userId || message.receiverId == userId {
+            if message.receiverId == userId {
                 if let messageId = message.id {
                     db.collection("messages").document(messageId).delete { error in
                         if let error = error {
@@ -160,6 +166,33 @@ struct InboxView: View {
             }
         }
     }
+
+    func markMessagesAsRead(from senderUsername: String) {
+        let db = Firestore.firestore()
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        db.collection("messages")
+            .whereField("receiverId", isEqualTo: userId)
+            .whereField("senderUsername", isEqualTo: senderUsername)
+            .whereField("isRead", isEqualTo: false) // Only update unread messages
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error marking messages as read: \(error.localizedDescription)")
+                    return
+                }
+
+                snapshot?.documents.forEach { document in
+                    document.reference.updateData(["isRead": true]) { error in
+                        if let error = error {
+                            print("Error updating message status: \(error.localizedDescription)")
+                        }
+                    }
+                }
+
+                // Update local unread message count
+                self.unreadMessageCount -= snapshot?.documents.count ?? 0
+            }
+    }
 }
 
 struct MessageGroup: Identifiable {
@@ -167,7 +200,6 @@ struct MessageGroup: Identifiable {
     var senderUsername: String
     var latestMessage: Message
 }
-
 
 #Preview {
     InboxView()
