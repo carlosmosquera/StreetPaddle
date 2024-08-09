@@ -139,5 +139,5 @@ struct ChatView: View {
 }
 
 #Preview {
-    ChatView(senderUsername: "Papito")
+    ChatView(senderUsername: "admin")
 }

@@ -57,6 +57,20 @@ struct MainView: View {
                         .background(Color.orange)
                         .cornerRadius(15.0)
                     }
+                    
+                    
+                    NavigationLink(destination: InboxGroupView()) {
+                        HStack {
+                            Text("📢")
+                            Text("InboxGroup")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(width: 200.0, height: 45.0)
+                        .background(Color.green)
+                        .cornerRadius(15.0)
+                    }
 
                     NavigationLink(destination: Shop()) {
                         HStack {

@@ -96,3 +96,7 @@ struct ComposeMessageView: View {
         }
     }
 }
+
+#Preview {
+    ComposeMessageView(refreshMessages: .constant(false))
+}
