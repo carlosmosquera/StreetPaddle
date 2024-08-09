@@ -8,15 +8,23 @@ struct PublicMessagesView: View {
     
     var body: some View {
         ZStack {
-            
             Image(.court)
                 .resizable()
                 .opacity(0.3)
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
             
-            
             VStack {
+//                Text("Public Messages")
+//                    .font(.largeTitle)
+//                    .fontWeight(.bold)
+//                    .padding(.top, 10)
+                
+                Text("This space is meant for public communication only. Please use direct messages with the (username) provided for private responses.")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
+                
                 ScrollView {
                     VStack {
                         ForEach(groupedMessages.keys.sorted(by: >), id: \.self) { date in
@@ -29,7 +37,7 @@ struct PublicMessagesView: View {
                                        ){
                                 ForEach(groupedMessages[date] ?? []) { message in
                                     VStack() {
-                                        Text("\(message.senderName) (\(message.senderUsername))")  // Display the name and username
+                                        Text("\(message.senderName) (@\(message.senderUsername))")  // Display the name and username
                                             .font(.subheadline)
                                             .foregroundColor(.black)
                                             .multilineTextAlignment(.leading)
@@ -37,10 +45,10 @@ struct PublicMessagesView: View {
                                         Text(message.content)
                                             .font(.body)
                                             .padding(10)
-                                            
                                             .background(Color.blue)
                                             .cornerRadius(10)
                                             .shadow(radius: 3)
+                                        
                                         Text(message.timestamp.dateValue(), formatter: timeFormatter)
                                             .font(.caption)
                                             .foregroundColor(.black)
@@ -52,23 +60,17 @@ struct PublicMessagesView: View {
                                     .cornerRadius(15)
                                     .shadow(radius: 1)
                                 }
-//                                .frame(width: 380.0)
                             }
-//                            .padding(.horizontal)
                         }
                     }
-                    
-//                    .frame(width: 400.0)
                 }
                 .padding(.horizontal)
-//                .frame(width: 400.0)
                 
                 HStack {
                     TextField("Enter your message", text: $message)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .frame(minHeight: 30)
                         .padding()
-
                     
                     Button(action: sendMessage) {
                         Text("Send")
@@ -79,11 +81,9 @@ struct PublicMessagesView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-//                .frame(width: 380.0)
             }
-//            .background(Color("TennisBackground"))
             .onAppear(perform: fetchMessages)
-        .navigationTitle("Public Messages")
+            .navigationTitle("Public Messages")
         }
     }
     

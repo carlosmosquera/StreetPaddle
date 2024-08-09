@@ -10,79 +10,103 @@ struct GroupChatView: View {
     @Namespace private var scrollNamespace
 
     var body: some View {
-        VStack {
-            // Compact header with user names
+        ZStack {
+            Image(.court)
+                .resizable()
+                .opacity(0.3)
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+            
             VStack {
-                HStack {
-                    Text(userNames.joined(separator: ", "))
-                        .font(.headline)
-                        .padding(10)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(10)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal)
-                .background(Color.gray.opacity(0.05))
-                .cornerRadius(10)
-                .padding(.top, 10) // Adjust top padding to reduce space
+                // Compact header with user names
+                VStack {
+                    HStack {
+                        Text(userNames.joined(separator: ", "))
+                            .font(.headline)
+                            .padding(10)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(10)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal)
+                    .background(Color.gray.opacity(0.05))
+                    .cornerRadius(10)
+                    .padding(.top, 10) // Adjust top padding to reduce space
 
-                // Chat messages view
-                ScrollViewReader { scrollView in
-                    ScrollView {
-                        VStack(alignment: .leading) {
-                            ForEach(groupMessages) { message in
-                                HStack {
-                                    if message.senderId == Auth.auth().currentUser?.uid {
-                                        Spacer()
-                                        Text(message.text)
-                                            .padding()
-                                            .background(Color.blue)
-                                            .cornerRadius(8)
-                                            .foregroundColor(.white)
-                                            .id(message.id) // Assign unique ID to each message
-                                    } else {
-                                        Text(message.text)
-                                            .padding()
-                                            .background(Color.gray.opacity(0.2))
-                                            .cornerRadius(8)
-                                            .id(message.id) // Assign unique ID to each message
-                                        Spacer()
+                    // Chat messages view
+                    ScrollViewReader { scrollView in
+                        ScrollView {
+                            VStack(alignment: .leading) {
+                                ForEach(groupMessages) { message in
+                                    VStack(alignment: .leading) {
+                                        HStack {
+                                            if message.senderId == Auth.auth().currentUser?.uid {
+                                                Spacer()
+                                                VStack(alignment: .trailing) {
+                                                    Text(message.text)
+                                                        .padding()
+                                                        .background(Color.blue)
+                                                        .cornerRadius(8)
+                                                        .foregroundColor(.white)
+                                                        .id(message.id) // Assign unique ID to each message
+                                                    
+                                                    Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
+                                                        .font(.caption)
+                                                        .foregroundColor(.gray)
+                                                        .padding(.top, 2)
+                                                }
+                                            } else {
+                                                VStack(alignment: .leading) {
+                                                    Text(message.text)
+                                                        .padding()
+                                                        .background(Color.gray.opacity(0.2))
+                                                        .cornerRadius(8)
+                                                        .id(message.id) // Assign unique ID to each message
+                                                    
+                                                    Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
+                                                        .font(.caption)
+                                                        .foregroundColor(.gray)
+                                                        .padding(.top, 2)
+                                                }
+                                                Spacer()
+                                            }
+                                        }
+                                        .padding(.horizontal)
                                     }
                                 }
-                                .padding(.horizontal)
+                            }
+                        }
+                        .onChange(of: groupMessages) { _ in
+                            if let lastMessageId = groupMessages.last?.id {
+                                withAnimation {
+                                    scrollView.scrollTo(lastMessageId, anchor: .bottom)
+                                }
                             }
                         }
                     }
-                    .onChange(of: groupMessages) { _ in
-                        if let lastMessageId = groupMessages.last?.id {
-                            withAnimation {
-                                scrollView.scrollTo(lastMessageId, anchor: .bottom)
-                            }
-                        }
-                    }
-                }
-                
-                // Message input area
-                HStack {
-                    TextField("Enter message", text: $messageText)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(5.0)
                     
-                    Button(action: sendMessage) {
-                        Text("Send")
-                            .foregroundColor(.white)
+                    // Message input area
+                    HStack {
+                        TextField("Enter message", text: $messageText)
                             .padding()
-                            .background(Color.blue)
+                            .background(Color.gray.opacity(0.2))
                             .cornerRadius(5.0)
+                        
+                        Button(action: sendMessage) {
+                            Text("Send")
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(5.0)
+                        }
+                        .disabled(messageText.isEmpty) // Disable if message is empty
                     }
-                    .disabled(messageText.isEmpty) // Disable if message is empty
+                    .padding()
                 }
-                .padding()
             }
+            .onAppear(perform: fetchGroupData)
         }
-        .onAppear(perform: fetchGroupData)
     }
     
     func fetchGroupData() {
@@ -159,6 +183,14 @@ struct GroupMessage: Identifiable, Codable, Equatable {
         return lhs.id == rhs.id
     }
 }
+
+// Date formatter for message timestamps
+private let messageTimeFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .short
+    return formatter
+}()
 
 #Preview {
     GroupChatView(groupId: "exampleGroupId")

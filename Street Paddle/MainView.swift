@@ -37,38 +37,38 @@ struct MainView: View {
                         .cornerRadius(15.0)
                     }
 
-                    NavigationLink(destination: InboxView()) {
+//                    NavigationLink(destination: InboxView()) {
+//                        HStack {
+//                            Text("💬")
+//                            Text("DMs")
+//                            if unreadMessagesCount > 0 {
+//                                Text("\(unreadMessagesCount)")
+//                                    .font(.subheadline)
+//                                    .foregroundColor(.white)
+//                                    .padding(5)
+//                                    .background(Color.red)
+//                                    .cornerRadius(10)
+//                            }
+//                        }
+//                        .font(.headline)
+//                        .foregroundColor(.white)
+//                        .padding()
+//                        .frame(width: 200.0, height: 45.0)
+//                        .background(Color.orange)
+//                        .cornerRadius(15.0)
+//                    }
+//                    
+                    
+                    NavigationLink(destination: InboxGroupView()) {
                         HStack {
                             Text("💬")
-                            Text("DMs")
-                            if unreadMessagesCount > 0 {
-                                Text("\(unreadMessagesCount)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.white)
-                                    .padding(5)
-                                    .background(Color.red)
-                                    .cornerRadius(10)
-                            }
+                            Text("Messages")
                         }
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding()
                         .frame(width: 200.0, height: 45.0)
                         .background(Color.orange)
-                        .cornerRadius(15.0)
-                    }
-                    
-                    
-                    NavigationLink(destination: InboxGroupView()) {
-                        HStack {
-                            Text("📢")
-                            Text("InboxGroup")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 200.0, height: 45.0)
-                        .background(Color.green)
                         .cornerRadius(15.0)
                     }
 
