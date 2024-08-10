@@ -55,6 +55,10 @@ struct GroupChatView: View {
                                                         .font(.caption)
                                                         .foregroundColor(.gray)
                                                         .padding(.top, 2)
+                                                    
+                                                    Text(message.senderName ?? "Unknown")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.gray)
                                                 }
                                             } else {
                                                 VStack(alignment: .leading) {
@@ -68,6 +72,10 @@ struct GroupChatView: View {
                                                         .font(.caption)
                                                         .foregroundColor(.gray)
                                                         .padding(.top, 2)
+                                                    
+                                                    Text(message.senderName ?? "Unknown")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.gray)
                                                 }
                                                 Spacer()
                                             }
@@ -131,27 +139,37 @@ struct GroupChatView: View {
                     return
                 }
                 
-                self.userNames = snapshot?.documents.compactMap { document in
-                    return document.data()["name"] as? String
-                } ?? []
+                let userNameDict = snapshot?.documents.reduce(into: [String: String]()) { dict, document in
+                    if let name = document.data()["name"] as? String {
+                        dict[document.documentID] = name
+                    }
+                }
+                
+                // Update user names for the header
+                self.userNames = memberIds.compactMap { userNameDict?[$0] }
+                
+                // Fetch group messages
+                db.collection("groups").document(groupId).collection("groupmessages")
+                    .order(by: "timestamp")
+                    .addSnapshotListener { snapshot, error in
+                        if let error = error {
+                            print("Error fetching messages: \(error)")
+                            return
+                        }
+                        
+                        guard let documents = snapshot?.documents else { return }
+                        
+                        self.groupMessages = documents.compactMap { document -> GroupMessage? in
+                            var message = try? document.data(as: GroupMessage.self)
+                            // Set the sender's name
+                            if let senderId = message?.senderId {
+                                message?.senderName = userNameDict?[senderId]
+                            }
+                            return message
+                        }
+                    }
             }
         }
-        
-        // Fetch group messages
-        db.collection("groups").document(groupId).collection("groupmessages") // Ensure collection name is correct
-            .order(by: "timestamp")
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("Error fetching messages: \(error)")
-                    return
-                }
-                
-                guard let documents = snapshot?.documents else { return }
-                
-                self.groupMessages = documents.compactMap { document -> GroupMessage? in
-                    return try? document.data(as: GroupMessage.self)
-                }
-            }
     }
     
     func sendMessage() {
@@ -178,7 +196,8 @@ struct GroupMessage: Identifiable, Codable, Equatable {
     var senderId: String
     var text: String
     var timestamp: Timestamp
-    
+    var senderName: String? // Add this line
+
     static func == (lhs: GroupMessage, rhs: GroupMessage) -> Bool {
         return lhs.id == rhs.id
     }

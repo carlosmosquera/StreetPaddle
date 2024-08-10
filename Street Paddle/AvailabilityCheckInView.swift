@@ -8,7 +8,7 @@ struct AvailabilityCheckInView: View {
     @State private var selectedGameType = "Singles"
     @State private var availabilityList = [Availability]()
 
-    let durationOptions = ["30 min", "60 min", "90 min", "2 hours", "3 hours", "4 hours", "5 hours", "6 hours", "Not sure"]
+    let durationOptions = ["30 min", "1 hour", "2 hours", "3 hours", "4 hours", "5 hours", "6 hours", "Not sure"]
     let levelOptions = ["Open", "A1", "A2", "Beginner"]
     let gameTypeOptions = ["Singles", "Doubles", "Both"]
 
@@ -58,7 +58,7 @@ struct AvailabilityCheckInView: View {
                 List {
                     ForEach(availabilityList) { availability in
                         VStack(alignment: .leading) {
-                            Text("\(availability.userName) (\(Auth.auth().currentUser?.email ?? ""))")
+                            Text("\(availability.userName) (\(availability.username))")
                                 .font(.headline)
                                 .foregroundColor(Color.black)
                             Text("Duration: \(availability.duration)")
@@ -99,14 +99,17 @@ struct AvailabilityCheckInView: View {
             }
             
             guard let document = document, document.exists, let data = document.data(), let name = data["name"] as? String else {
-                print("Error fetching user name")
+                print("Error fetching user data")
                 return
             }
+            
+            let username = user.email?.components(separatedBy: "@").first ?? "Unknown"
             
             let newAvailability = Availability(
                 id: nil,
                 userId: user.uid,
                 userName: name,
+                username: username,
                 duration: selectedDuration,
                 level: selectedLevel,
                 gameType: selectedGameType,
@@ -154,6 +157,7 @@ struct Availability: Identifiable, Codable {
     @DocumentID var id: String?
     var userId: String
     var userName: String
+    var username: String
     var duration: String
     var level: String
     var gameType: String
@@ -163,6 +167,7 @@ struct Availability: Identifiable, Codable {
         return [
             "userId": userId,
             "userName": userName,
+            "username": username,
             "duration": duration,
             "level": level,
             "gameType": gameType,

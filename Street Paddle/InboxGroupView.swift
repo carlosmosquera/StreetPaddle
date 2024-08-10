@@ -144,10 +144,25 @@ struct InboxGroupView: View {
     }
 
     func deleteGroupChat(at offsets: IndexSet) {
-        // Local deletion only
+        let db = Firestore.firestore()
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
         offsets.forEach { index in
+            let groupChat = groupChats[index]
+
+            // Delete the group chat document from Firestore
+            if let groupId = groupChat.id {
+                db.collection("groups").document(groupId).delete { error in
+                    if let error = error {
+                        print("Error deleting group chat: \(error)")
+                    } else {
+                        print("Group chat successfully deleted!")
+                    }
+                }
+            }
+
             // Remove the group chat from the local array
-            groupChats.remove(atOffsets: offsets)
+            groupChats.remove(at: index)
         }
     }
 }

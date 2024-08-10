@@ -75,7 +75,7 @@ struct MainView: View {
                     NavigationLink(destination: Shop()) {
                         HStack {
                             Text("👕")
-                            Text("Merch")
+                            Text("Shop")
                         }
                         .font(.headline)
                         .foregroundColor(.white)
