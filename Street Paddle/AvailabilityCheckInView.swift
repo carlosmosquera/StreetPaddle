@@ -2,151 +2,183 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
-struct CheckInView: View {
-    @State private var availabilityDuration = ""
-    @State private var level = "Open"
-    @State private var preferredPlay = "Singles"
-    @State private var showConfirmation = false
-    @State private var checkIns = [CheckIn]()
+struct AvailabilityCheckInView: View {
+    @State private var selectedDuration = "30 min"
+    @State private var selectedLevel = "Open"
+    @State private var selectedGameType = "Singles"
+    @State private var availabilityList = [Availability]()
+
+    let durationOptions = ["30 min", "60 min", "90 min", "2 hours", "3 hours", "4 hours", "5 hours", "6 hours", "Not sure"]
+    let levelOptions = ["Open", "A1", "A2", "Beginner"]
+    let gameTypeOptions = ["Singles", "Doubles", "Both"]
 
     var body: some View {
-        VStack {
-            // Form to input availability
-            Form {
-                Section(header: Text("Availability Check-In")) {
-                    TextField("How long will you be available?", text: $availabilityDuration)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
+        ZStack {
+            Image(.court)
+                .resizable()
+                .opacity(0.3)
+                .aspectRatio(contentMode: .fill)
+                .ignoresSafeArea()
+            
+            VStack {
+                Form {
+                    Section(header: Text("Availability")) {
+                        Picker("Duration", selection: $selectedDuration) {
+                            ForEach(durationOptions, id: \.self) {
+                                Text($0)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
 
-                    Picker("Select your level", selection: $level) {
-                        Text("Open").tag("Open")
-                        Text("A1").tag("A1")
-                        Text("A2").tag("A2")
-                        Text("Beginner").tag("Beginner")
+                        Picker("Level", selection: $selectedLevel) {
+                            ForEach(levelOptions, id: \.self) {
+                                Text($0)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+
+                        Picker("Game Type", selection: $selectedGameType) {
+                            ForEach(gameTypeOptions, id: \.self) {
+                                Text($0)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
                     }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .padding()
-
-                    Picker("Preferred play", selection: $preferredPlay) {
-                        Text("Singles").tag("Singles")
-                        Text("Doubles").tag("Doubles")
-                        Text("Both").tag("Both")
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .padding()
-
-                    Button(action: submitCheckIn) {
+                    
+                    Button(action: checkIn) {
                         Text("Check In")
                             .foregroundColor(.white)
                             .padding()
                             .background(Color.green)
-                            .cornerRadius(8)
+                            .cornerRadius(10)
                     }
-                    .disabled(availabilityDuration.isEmpty)
                 }
-            }
-            .padding(.top, 20)
-            
-            // List of current check-ins
-            List(checkIns) { checkIn in
-                VStack(alignment: .leading) {
-                    Text(checkIn.userName)
-                        .font(.headline)
-                    Text("Available for: \(checkIn.availabilityDuration)")
-                    Text("Level: \(checkIn.level)")
-                    Text("Play: \(checkIn.preferredPlay)")
-                    Text(checkIn.timestamp.dateValue(), formatter: dateFormatter)
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                .frame(height: 290.0)
+                
+                List {
+                    ForEach(availabilityList) { availability in
+                        VStack(alignment: .leading) {
+                            Text("\(availability.userName) (\(Auth.auth().currentUser?.email ?? ""))")
+                                .font(.headline)
+                                .foregroundColor(Color.black)
+                            Text("Duration: \(availability.duration)")
+                                .foregroundColor(Color.black)
+                            Text("Level: \(availability.level)")
+                                .foregroundColor(Color.black)
+                            Text("\(availability.gameType)")
+                                .foregroundColor(Color.black)
+                        }
+                        .padding(10)
+                        .background(Color.white.opacity(0.9))
+                        .cornerRadius(10)
+                        .shadow(radius: 2)
+                        .swipeActions {
+                            if availability.userId == Auth.auth().currentUser?.uid {
+                                Button(role: .destructive) {
+                                    deleteAvailability(availability: availability)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
                 }
-                .padding()
+                .onAppear(perform: fetchAvailability)
             }
-            .onAppear(perform: fetchCheckIns)
-        }
-        .alert(isPresented: $showConfirmation) {
-            Alert(title: Text("Check-In Successful"), message: Text("Your availability has been posted!"), dismissButton: .default(Text("OK")))
         }
     }
-
-    func submitCheckIn() {
+    
+    func checkIn() {
         guard let user = Auth.auth().currentUser else { return }
         
         let db = Firestore.firestore()
-        let checkInData: [String: Any] = [
-            "userId": user.uid,
-            "userName": user.displayName ?? "Unknown",
-            "availabilityDuration": availabilityDuration,
-            "level": level,
-            "preferredPlay": preferredPlay,
-            "timestamp": Timestamp(date: Date())
-        ]
-        
-        db.collection("checkIns").addDocument(data: checkInData) { error in
+        db.collection("users").document(user.uid).getDocument { document, error in
             if let error = error {
-                print("Error submitting check-in: \(error.localizedDescription)")
-            } else {
-                showConfirmation = true
-                availabilityDuration = ""
-                fetchCheckIns()
+                print("Error fetching user data: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let document = document, document.exists, let data = document.data(), let name = data["name"] as? String else {
+                print("Error fetching user name")
+                return
+            }
+            
+            let newAvailability = Availability(
+                id: nil,
+                userId: user.uid,
+                userName: name,
+                duration: selectedDuration,
+                level: selectedLevel,
+                gameType: selectedGameType,
+                timestamp: Timestamp(date: Date())
+            )
+            
+            db.collection("availability").addDocument(data: newAvailability.toDictionary()) { error in
+                if let error = error {
+                    print("Error checking in: \(error.localizedDescription)")
+                }
             }
         }
     }
-
-    func fetchCheckIns() {
+    
+    func fetchAvailability() {
         let db = Firestore.firestore()
-        db.collection("checkIns")
+        
+        db.collection("availability")
             .order(by: "timestamp", descending: true)
-            .getDocuments { snapshot, error in
+            .addSnapshotListener { snapshot, error in
                 if let error = error {
-                    print("Error fetching check-ins: \(error.localizedDescription)")
-                } else {
-                    checkIns = snapshot?.documents.compactMap { document in
-                        try? document.data(as: CheckIn.self)
-                    } ?? []
+                    print("Error fetching availability: \(error.localizedDescription)")
+                    return
                 }
+                
+                availabilityList = snapshot?.documents.compactMap { document in
+                    try? document.data(as: Availability.self)
+                } ?? []
             }
     }
-
-    func removeExpiredCheckIns() {
+    
+    func deleteAvailability(availability: Availability) {
+        guard let id = availability.id else { return }
         let db = Firestore.firestore()
-        let now = Date()
-        let calendar = Calendar.current
-        let midnight = calendar.startOfDay(for: now).addingTimeInterval(24 * 60 * 60)
-        
-        db.collection("checkIns")
-            .whereField("timestamp", isLessThan: Timestamp(date: midnight))
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    print("Error fetching expired check-ins: \(error.localizedDescription)")
-                } else {
-                    for document in snapshot!.documents {
-                        document.reference.delete()
-                    }
-                }
+        db.collection("availability").document(id).delete { error in
+            if let error = error {
+                print("Error deleting availability: \(error.localizedDescription)")
             }
+        }
     }
 }
 
-private let dateFormatter: DateFormatter = {
+// Availability model
+struct Availability: Identifiable, Codable {
+    @DocumentID var id: String?
+    var userId: String
+    var userName: String
+    var duration: String
+    var level: String
+    var gameType: String
+    var timestamp: Timestamp
+    
+    func toDictionary() -> [String: Any] {
+        return [
+            "userId": userId,
+            "userName": userName,
+            "duration": duration,
+            "level": level,
+            "gameType": gameType,
+            "timestamp": timestamp
+        ]
+    }
+}
+
+// Date formatter for availability timestamps
+private let availabilityTimeFormatter: DateFormatter = {
     let formatter = DateFormatter()
-    formatter.dateStyle = .medium
+    formatter.dateStyle = .short
     formatter.timeStyle = .short
     return formatter
 }()
 
-
-
-struct CheckIn: Identifiable, Codable {
-    @DocumentID var id: String?
-    var userId: String
-    var userName: String
-    var availabilityDuration: String
-    var level: String
-    var preferredPlay: String
-    var timestamp: Timestamp
-}
-
-
 #Preview {
-    CheckInView()
+    AvailabilityCheckInView()
 }

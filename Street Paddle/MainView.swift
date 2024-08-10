@@ -107,6 +107,19 @@ struct MainView: View {
                         .background(Color.blue)
                         .cornerRadius(15.0)
                     }
+                    
+                    NavigationLink(destination: AvailabilityCheckInView()) {
+                        HStack {
+                            Text("📍")
+                            Text("Check In")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(width: 200.0, height: 45.0)
+                        .background(Color.brown)
+                        .cornerRadius(15.0)
+                    }
                 }
 
                 VStack {

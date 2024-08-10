@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		270D4A7F2C66E4790068D8BD /* AvailabilityCheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270D4A7E2C66E4790068D8BD /* AvailabilityCheckInView.swift */; };
 		271E116E2C65D68500CF389E /* CreateGroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271E116D2C65D68500CF389E /* CreateGroupChatView.swift */; };
 		271E11702C65D69600CF389E /* GroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271E116F2C65D69600CF389E /* GroupChatView.swift */; };
 		271E11722C65DB5500CF389E /* InboxGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271E11712C65DB5500CF389E /* InboxGroupView.swift */; };
@@ -52,6 +53,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		270D4A7E2C66E4790068D8BD /* AvailabilityCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvailabilityCheckInView.swift; sourceTree = "<group>"; };
 		271E116D2C65D68500CF389E /* CreateGroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateGroupChatView.swift; sourceTree = "<group>"; };
 		271E116F2C65D69600CF389E /* GroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupChatView.swift; sourceTree = "<group>"; };
 		271E11712C65DB5500CF389E /* InboxGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxGroupView.swift; sourceTree = "<group>"; };
@@ -156,6 +158,7 @@
 				271E116D2C65D68500CF389E /* CreateGroupChatView.swift */,
 				271E116F2C65D69600CF389E /* GroupChatView.swift */,
 				2785F6E12C61CC800075C211 /* zz_old */,
+				270D4A7E2C66E4790068D8BD /* AvailabilityCheckInView.swift */,
 			);
 			path = "Street Paddle";
 			sourceTree = "<group>";
@@ -280,6 +283,7 @@
 				279170632C5A9BA400EB068B /* MainView.swift in Sources */,
 				279170652C5A9BBF00EB068B /* LoginView.swift in Sources */,
 				276E4D742C5D47D800783B6D /* TournamentsView.swift in Sources */,
+				270D4A7F2C66E4790068D8BD /* AvailabilityCheckInView.swift in Sources */,
 				279170192C5A952300EB068B /* Street_PaddleApp.swift in Sources */,
 				2785F6DE2C6178DB0075C211 /* InboxView.swift in Sources */,
 				2791706D2C5A9C8700EB068B /* Shop.swift in Sources */,
