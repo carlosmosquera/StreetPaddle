@@ -9,7 +9,7 @@ struct FriendsListView: View {
     @State private var selectedFriend: String?
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 List {
                     ForEach(friends, id: \.self) { friend in
@@ -36,14 +36,9 @@ struct FriendsListView: View {
                 .onAppear(perform: fetchFriends)
             }
             .navigationTitle("Friends List")
-            .background(
-                NavigationLink(
-                    destination: InboxGroupView(selectedGroupId: newChatId),
-                    isActive: $isNavigatingToChat
-                ) {
-                    EmptyView()
-                }
-            )
+            .navigationDestination(isPresented: $isNavigatingToChat) {
+                InboxGroupView(selectedGroupId: newChatId)
+            }
         }
     }
 
@@ -76,9 +71,10 @@ struct FriendsListView: View {
                     return
                 }
 
+                // Find an existing chat with the same participants
                 let existingChat = snapshot?.documents.first(where: { document in
                     let members = document.get("members") as? [String] ?? []
-                    return members.contains(friend) && members.count == 2
+                    return members.contains(friend) && members.contains(currentUserId) && members.count == 2
                 })
 
                 if let chat = existingChat {
@@ -112,23 +108,44 @@ struct FriendsListView: View {
 
                 let friendId = friendDoc.documentID
 
-                // Create the chat with the friend
-                let newChatData: [String: Any] = [
-                    "members": [currentUserId, friendId],
-                    "createdAt": Timestamp(),
-                    "name": friend
-                ]
+                // Check if a chat already exists with the same participants
+                db.collection("groups")
+                    .whereField("members", arrayContains: currentUserId)
+                    .getDocuments { snapshot, error in
+                        if let error = error {
+                            print("Error fetching chats: \(error.localizedDescription)")
+                            return
+                        }
 
-                var newChatRef: DocumentReference? = nil
-                newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
-                    if let error = error {
-                        print("Error creating chat: \(error.localizedDescription)")
-                    } else {
-                        // After creating the chat, navigate to the chat view
-                        self.newChatId = newChatRef?.documentID
+                        let existingChat = snapshot?.documents.first(where: { document in
+                            let members = document.get("members") as? [String] ?? []
+                            return members.contains(friendId) && members.count == 2
+                        })
+
+                        if let chat = existingChat {
+                            // If chat exists, use existing chat ID
+                            self.newChatId = chat.documentID
+                        } else {
+                            // Create a new chat
+                            let newChatData: [String: Any] = [
+                                "members": [currentUserId, friendId],
+                                "createdAt": Timestamp(),
+                                "name": friend
+                            ]
+
+                            var newChatRef: DocumentReference? = nil
+                            newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
+                                if let error = error {
+                                    print("Error creating chat: \(error.localizedDescription)")
+                                } else {
+                                    self.newChatId = newChatRef?.documentID
+                                }
+                            }
+                        }
+                        
+                        // Navigate to the chat view
                         self.isNavigatingToChat = true
                     }
-                }
             }
     }
 
