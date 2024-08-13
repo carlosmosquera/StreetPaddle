@@ -2,12 +2,14 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
+
 struct CreateGroupChatView: View {
     @State private var groupName = ""
     @State private var usernames = ""
     @State private var errorMessage = ""
     @State private var isGroupCreated = false
     @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var chatManager: ChatManager
 
     var body: some View {
         VStack {
@@ -85,7 +87,8 @@ struct CreateGroupChatView: View {
                 if let error = error {
                     errorMessage = error.localizedDescription
                 } else {
-                    // Successfully created the chat, navigate back to InboxGroupView
+                    // Successfully created the chat, update chat list and navigate back
+                    chatManager.fetchGroupChats() // Refresh the chat list
                     self.presentationMode.wrappedValue.dismiss()
                 }
             }
@@ -94,5 +97,7 @@ struct CreateGroupChatView: View {
 }
 
 #Preview {
-    CreateGroupChatView()
+    CreateGroupChatView(chatManager: ChatManager())
 }
+
+

@@ -3,144 +3,89 @@ import FirebaseFirestore
 import FirebaseAuth
 
 struct InboxGroupView: View {
-    @State private var groupChats = [GroupChat]()
-    @State private var selectedGroupId: String?
-    @State private var userName: String = "" // New state property for user's name
+    @ObservedObject var chatManager = ChatManager()
+    @State private var selectedGroupId: String? = nil
+
+    init(selectedGroupId: String? = nil) {
+        _selectedGroupId = State(initialValue: selectedGroupId)
+    }
 
     var body: some View {
-        
         ZStack {
-            
             Image(.court)
                 .resizable()
                 .opacity(0.3)
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
+
             VStack {
-                        // Display the user's name at the top center
-                        Text(userName)
-                            .font(.title)
-                            .fontWeight(.bold)
+                Text(chatManager.groupChats.isEmpty ? "No Chats" : "Chats")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                List {
+                    ForEach(chatManager.groupChats) { groupChat in
+                        NavigationLink(
+                            destination: GroupChatView(groupId: groupChat.id ?? ""),
+                            tag: groupChat.id ?? "",
+                            selection: $selectedGroupId
+                        ) {
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text(groupChat.name)
+                                        .font(.headline)
+                                    Spacer()
+                                    if let timestamp = groupChat.latestMessageTimestamp {
+                                        Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+
+                                if let latestMessage = groupChat.latestMessage {
+                                    Text(latestMessage)
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                        .lineLimit(1)
+                                }
+                            }
                             .padding()
-                            .frame(maxWidth: .infinity, alignment: .center)
-                        
-                        List {
-                            ForEach(groupChats) { groupChat in
-                                NavigationLink(
-                                    destination: GroupChatView(groupId: groupChat.id ?? ""),
-                                    tag: groupChat.id ?? "",
-                                    selection: $selectedGroupId
-                                ) {
-                                    VStack(alignment: .leading) {
-                                        HStack {
-                                            Text(groupChat.name)
-                                                .font(.headline)
-                                            Spacer()
-                                            if let timestamp = groupChat.latestMessageTimestamp {
-                                                Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
-                                                    .font(.caption)
-                                                    .foregroundColor(.gray)
-                                            }
-                                        }
-                                        
-                                        if let latestMessage = groupChat.latestMessage {
-                                            Text(latestMessage)
-                                                .font(.subheadline)
-                                                .foregroundColor(.gray)
-                                                .lineLimit(1)
-                                        }
-                                    }
-                                    .padding()
-                                    .background(Color.gray.opacity(0.1))
-                                    .cornerRadius(8)
-                                }
-                                .contextMenu {
-                                    Button(action: {
-                                        // Add any additional actions here (e.g., leave group)
-                                    }) {
-                                        Text("Leave Group")
-                                        Image(systemName: "arrow.right.circle")
-                                    }
-                                }
-                            }
-                            .onDelete(perform: deleteGroupChat) // Add delete functionality
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
                         }
-                        .navigationTitle("Inbox")
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                NavigationLink(destination: CreateGroupChatView()) {
-                                    Image(systemName: "square.and.pencil")
-                                }
+                        .contextMenu {
+                            Button(action: {
+                                // Add any additional actions here (e.g., leave group)
+                            }) {
+                                Text("Leave Group")
+                                Image(systemName: "arrow.right.circle")
                             }
                         }
-                        .onAppear(perform: fetchGroupChats)
-            }
-        }
-            
-        
-    }
-
-    func fetchGroupChats() {
-        let db = Firestore.firestore()
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-
-        // Fetch the current user's name
-        db.collection("users").document(userId).getDocument { document, error in
-            if let error = error {
-                print("Error fetching user data: \(error)")
-                return
-            }
-
-            guard let data = document?.data(), let name = data["name"] as? String else {
-                print("User data is missing or malformed.")
-                return
-            }
-
-            self.userName = name
-        }
-
-        db.collection("groups")
-            .whereField("members", arrayContains: userId)
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("Error fetching groups: \(error)")
-                    return
-                }
-
-                guard let documents = snapshot?.documents else { return }
-
-                self.groupChats = documents.compactMap { document -> GroupChat? in
-                    var groupChat = try? document.data(as: GroupChat.self)
-                    
-                    // Fetch the latest message for each group
-                    if let groupId = groupChat?.id {
-                        db.collection("groups")
-                            .document(groupId)
-                            .collection("groupmessages")
-                            .order(by: "timestamp", descending: true)
-                            .limit(to: 1)
-                            .getDocuments { messageSnapshot, error in
-                                if let error = error {
-                                    print("Error fetching latest message: \(error)")
-                                    return
-                                }
-                                
-                                if let messageDoc = messageSnapshot?.documents.first {
-                                    groupChat?.latestMessage = messageDoc.data()["text"] as? String
-                                    groupChat?.latestMessageTimestamp = messageDoc.data()["timestamp"] as? Timestamp
-                                    
-                                    // Update the group chat in the list
-                                    if let updatedGroupChat = groupChat,
-                                       let index = self.groupChats.firstIndex(where: { $0.id == updatedGroupChat.id }) {
-                                        self.groupChats[index] = updatedGroupChat
-                                    }
-                                }
-                            }
                     }
+                    .onDelete(perform: deleteGroupChat)
+                }
+                .navigationTitle("Inbox")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        NavigationLink(destination: CreateGroupChatView(chatManager: chatManager)) {
+                            Image(systemName: "square.and.pencil")
+                        }
+                    }
+                }
+                .onAppear {
+                    chatManager.fetchGroupChats()
                     
-                    return groupChat
+                    // Automatically navigate to the selected chat if needed
+                    if let selectedGroupId = selectedGroupId {
+                        DispatchQueue.main.async {
+                            self.selectedGroupId = selectedGroupId
+                        }
+                    }
                 }
             }
+        }
     }
 
     func deleteGroupChat(at offsets: IndexSet) {
@@ -148,7 +93,7 @@ struct InboxGroupView: View {
         guard let userId = Auth.auth().currentUser?.uid else { return }
 
         offsets.forEach { index in
-            let groupChat = groupChats[index]
+            let groupChat = chatManager.groupChats[index]
 
             // Delete the group chat document from Firestore
             if let groupId = groupChat.id {
@@ -162,9 +107,13 @@ struct InboxGroupView: View {
             }
 
             // Remove the group chat from the local array
-            groupChats.remove(at: index)
+            chatManager.groupChats.remove(at: index)
         }
     }
+}
+
+#Preview {
+    InboxGroupView()
 }
 
 struct GroupChat: Identifiable, Codable {
@@ -173,6 +122,8 @@ struct GroupChat: Identifiable, Codable {
     var latestMessage: String?
     var latestMessageTimestamp: Timestamp?
 }
+
+
 
 #Preview {
     InboxGroupView()

@@ -5,7 +5,9 @@ import FirebaseAuth
 struct PublicMessagesView: View {
     @State private var message = ""
     @State private var groupedMessages = [String: [PublicMessage]]()
-    
+    @State private var currentUsername: String = ""
+    @State private var friends = Set<String>() // Track friends
+
     var body: some View {
         ZStack {
             Image(.court)
@@ -15,11 +17,6 @@ struct PublicMessagesView: View {
                 .ignoresSafeArea()
             
             VStack {
-//                Text("Public Messages")
-//                    .font(.largeTitle)
-//                    .fontWeight(.bold)
-//                    .padding(.top, 10)
-                
                 Text("This space is meant for public communication only. Please use direct messages with the (username) provided for private responses.")
                     .font(.subheadline)
                     .foregroundColor(.gray)
@@ -36,29 +33,47 @@ struct PublicMessagesView: View {
                                         .cornerRadius(10)
                                        ){
                                 ForEach(groupedMessages[date] ?? []) { message in
-                                    VStack() {
-                                        Text("\(message.senderName) (@\(message.senderUsername))")  // Display the name and username
-                                            .font(.subheadline)
-                                            .foregroundColor(.black)
-                                            .multilineTextAlignment(.leading)
+                                    HStack {
+                                        VStack(alignment: .leading) {
+                                            Text("\(message.senderName) (@\(message.senderUsername))")
+                                                .font(.subheadline)
+                                                .foregroundColor(.black)
+                                                .multilineTextAlignment(.leading)
+                                            
+                                            Text(message.content)
+                                                .font(.body)
+                                                .padding(10)
+                                                .background(Color.blue)
+                                                .cornerRadius(10)
+                                                .shadow(radius: 3)
+                                            
+                                            Text(message.timestamp.dateValue(), formatter: timeFormatter)
+                                                .font(.caption)
+                                                .foregroundColor(.black)
+                                                .padding(.bottom, 5)
+                                        }
+                                        .padding(5)
+                                        .background(Color.white)
+                                        .cornerRadius(15)
+                                        .shadow(radius: 1)
                                         
-                                        Text(message.content)
-                                            .font(.body)
-                                            .padding(10)
-                                            .background(Color.blue)
-                                            .cornerRadius(10)
-                                            .shadow(radius: 3)
-                                        
-                                        Text(message.timestamp.dateValue(), formatter: timeFormatter)
-                                            .font(.caption)
-                                            .foregroundColor(.black)
-                                            .padding(.bottom, 5)
+                                        // Show icon based on friend status
+                                        if message.senderUsername != currentUsername {
+                                            Button(action: {
+                                                if friends.contains(message.senderUsername) {
+                                                    // Remove friend
+                                                    removeFriend(username: message.senderUsername)
+                                                } else {
+                                                    // Add friend
+                                                    validateAndAddFriend(username: message.senderUsername)
+                                                }
+                                            }) {
+                                                Image(systemName: friends.contains(message.senderUsername) ? "checkmark.circle.fill" : "plus.circle.fill")
+                                                    .foregroundColor(friends.contains(message.senderUsername) ? .blue : .green)
+                                                    .padding()
+                                            }
+                                        }
                                     }
-                                    .padding(5)
-                                    .frame(width: 360.0)
-                                    .background(Color.white)
-                                    .cornerRadius(15)
-                                    .shadow(radius: 1)
                                 }
                             }
                         }
@@ -82,7 +97,11 @@ struct PublicMessagesView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .onAppear(perform: fetchMessages)
+            .onAppear {
+                fetchMessages()
+                fetchCurrentUser()
+                fetchFriends() // Fetch friends on appear
+            }
             .navigationTitle("Public Messages")
         }
     }
@@ -135,6 +154,100 @@ struct PublicMessagesView: View {
             }
         }
     }
+    
+    func fetchCurrentUser() {
+        guard let user = Auth.auth().currentUser else { return }
+        let db = Firestore.firestore()
+        db.collection("users").document(user.uid).getDocument { document, error in
+            if let error = error {
+                print("Error fetching user data: \(error.localizedDescription)")
+                return
+            }
+            if let document = document, document.exists {
+                self.currentUsername = document.get("username") as? String ?? ""
+            }
+        }
+    }
+
+    func fetchFriends() {
+        guard let user = Auth.auth().currentUser else { return }
+        let db = Firestore.firestore()
+        db.collection("users").document(user.uid).getDocument { document, error in
+            if let error = error {
+                print("Error fetching friends: \(error.localizedDescription)")
+                return
+            }
+            if let document = document, document.exists {
+                self.friends = Set(document.get("friends") as? [String] ?? [])
+            }
+        }
+    }
+
+    func validateAndAddFriend(username: String) {
+        let db = Firestore.firestore()
+        let usersRef = db.collection("users")
+        
+        usersRef.whereField("username", isEqualTo: username).getDocuments { snapshot, error in
+            if let error = error {
+                print("Error validating user: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let snapshot = snapshot, !snapshot.isEmpty else {
+                print("User not found, not adding to friends list")
+                return
+            }
+            
+            // User exists, proceed to add to friends list
+            addFriend(username: username)
+        }
+    }
+
+    func addFriend(username: String) {
+        guard let user = Auth.auth().currentUser else { return }
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document(user.uid)
+        
+        userRef.updateData([
+            "friends": FieldValue.arrayUnion([username])
+        ]) { error in
+            if let error = error {
+                print("Error adding friend: \(error.localizedDescription)")
+            } else {
+                // Update local state after adding friend
+                self.friends.insert(username)
+                print("\(username) added as friend")
+            }
+        }
+    }
+    
+    func removeFriend(username: String) {
+        guard let user = Auth.auth().currentUser else { return }
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document(user.uid)
+        
+        userRef.updateData([
+            "friends": FieldValue.arrayRemove([username])
+        ]) { error in
+            if let error = error {
+                print("Error removing friend: \(error.localizedDescription)")
+            } else {
+                // Update local state after removing friend
+                self.friends.remove(username)
+                print("\(username) removed from friends list")
+                
+                // Notify FriendsListView about the change
+                DispatchQueue.main.async {
+                    fetchFriends() // Refresh friends list to ensure UI update
+                }
+            }
+        }
+    }
+}
+
+
+#Preview {
+    PublicMessagesView()
 }
 
 struct PublicMessage: Identifiable, Codable {
@@ -142,7 +255,7 @@ struct PublicMessage: Identifiable, Codable {
     var content: String
     var timestamp: Timestamp
     var senderName: String
-    var senderUsername: String  // Added this line
+    var senderUsername: String
 }
 
 private let dateFormatter: DateFormatter = {
@@ -156,7 +269,3 @@ private let timeFormatter: DateFormatter = {
     formatter.timeStyle = .short
     return formatter
 }()
-
-#Preview {
-    PublicMessagesView()
-}

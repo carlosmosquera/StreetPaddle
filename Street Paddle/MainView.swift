@@ -120,6 +120,19 @@ struct MainView: View {
                         .background(Color.brown)
                         .cornerRadius(15.0)
                     }
+                    
+                    NavigationLink(destination: FriendsListView()) {
+                        HStack {
+                            Text("👫")
+                            Text("Friends")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(width: 200.0, height: 45.0)
+                        .background(Color.cyan)
+                        .cornerRadius(15.0)
+                    }
                 }
 
                 VStack {
