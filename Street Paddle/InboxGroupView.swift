@@ -93,21 +93,23 @@ struct InboxGroupView: View {
         guard let userId = Auth.auth().currentUser?.uid else { return }
 
         offsets.forEach { index in
-            let groupChat = chatManager.groupChats[index]
+            if index < chatManager.groupChats.count {
+                let groupChat = chatManager.groupChats[index]
 
-            // Delete the group chat document from Firestore
-            if let groupId = groupChat.id {
-                db.collection("groups").document(groupId).delete { error in
-                    if let error = error {
-                        print("Error deleting group chat: \(error)")
-                    } else {
-                        print("Group chat successfully deleted!")
+                // Delete the group chat document from Firestore
+                if let groupId = groupChat.id {
+                    db.collection("groups").document(groupId).delete { error in
+                        if let error = error {
+                            print("Error deleting group chat: \(error)")
+                        } else {
+                            print("Group chat successfully deleted!")
+                        }
                     }
                 }
-            }
 
-            // Remove the group chat from the local array
-            chatManager.groupChats.remove(at: index)
+                // Remove the group chat from the local array
+                chatManager.groupChats.remove(at: index)
+            }
         }
     }
 }
@@ -121,10 +123,4 @@ struct GroupChat: Identifiable, Codable {
     var name: String
     var latestMessage: String?
     var latestMessageTimestamp: Timestamp?
-}
-
-
-
-#Preview {
-    InboxGroupView()
 }

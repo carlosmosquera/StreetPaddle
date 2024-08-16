@@ -4,7 +4,6 @@ import FirebaseAuth
 
 class ChatManager: ObservableObject {
     @Published var groupChats: [GroupChat] = []
-
     private var db = Firestore.firestore()
 
     func fetchGroupChats() {
@@ -17,12 +16,6 @@ class ChatManager: ObservableObject {
                 return
             }
 
-            guard let data = document?.data(), let name = data["name"] as? String else {
-                print("User data is missing or malformed.")
-                return
-            }
-
-            self.groupChats = []
             self.db.collection("groups")
                 .whereField("members", arrayContains: userId)
                 .addSnapshotListener { snapshot, error in
@@ -33,38 +26,74 @@ class ChatManager: ObservableObject {
 
                     guard let documents = snapshot?.documents else { return }
 
-                    self.groupChats = documents.compactMap { document -> GroupChat? in
+                    var updatedGroupChats = [GroupChat]()
+
+                    let dispatchGroup = DispatchGroup()
+                    
+                    for document in documents {
                         var groupChat = try? document.data(as: GroupChat.self)
-                        
-                        // Fetch the latest message for each group
-                        if let groupId = groupChat?.id {
+                        if let groupChatId = groupChat?.id {
+                            dispatchGroup.enter()
                             self.db.collection("groups")
-                                .document(groupId)
+                                .document(groupChatId)
                                 .collection("groupmessages")
                                 .order(by: "timestamp", descending: true)
                                 .limit(to: 1)
                                 .getDocuments { messageSnapshot, error in
                                     if let error = error {
                                         print("Error fetching latest message: \(error)")
+                                        dispatchGroup.leave()
                                         return
                                     }
                                     
                                     if let messageDoc = messageSnapshot?.documents.first {
                                         groupChat?.latestMessage = messageDoc.data()["text"] as? String
                                         groupChat?.latestMessageTimestamp = messageDoc.data()["timestamp"] as? Timestamp
-                                        
-                                        // Update the group chat in the list
-                                        if let updatedGroupChat = groupChat,
-                                           let index = self.groupChats.firstIndex(where: { $0.id == updatedGroupChat.id }) {
-                                            self.groupChats[index] = updatedGroupChat
-                                        }
                                     }
+                                    
+                                    dispatchGroup.leave()
                                 }
                         }
-                        
-                        return groupChat
+                        updatedGroupChats.append(groupChat ?? GroupChat(id: nil, name: "", latestMessage: nil, latestMessageTimestamp: nil))
+                    }
+
+                    dispatchGroup.notify(queue: .main) {
+                        self.updateGroupChatsWithNames(from: updatedGroupChats)
                     }
                 }
+        }
+    }
+
+    private func updateGroupChatsWithNames(from groupChats: [GroupChat]) {
+        let dispatchGroup = DispatchGroup()
+        
+        var updatedGroupChats = groupChats
+        
+        for index in groupChats.indices {
+            let groupChat = groupChats[index]
+            if !groupChat.name.isEmpty {
+                dispatchGroup.enter()
+                self.db.collection("users")
+                    .whereField("username", isEqualTo: groupChat.name)
+                    .getDocuments { snapshot, error in
+                        if let error = error {
+                            print("Error fetching user: \(error.localizedDescription)")
+                            dispatchGroup.leave()
+                            return
+                        }
+                        
+                        if let document = snapshot?.documents.first {
+                            let userName = document.get("name") as? String ?? ""
+                            updatedGroupChats[index].name = "\(userName) (\(groupChat.name))"
+                        }
+                        
+                        dispatchGroup.leave()
+                    }
+            }
+        }
+        
+        dispatchGroup.notify(queue: .main) {
+            self.groupChats = updatedGroupChats
         }
     }
 }
