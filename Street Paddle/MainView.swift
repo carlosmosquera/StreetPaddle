@@ -149,7 +149,7 @@ struct MainView: View {
                             Text("Log Out")
                                 .font(.headline)
                                 .foregroundColor(.white)
-                                .padding()
+                                .padding([.bottom, .trailing])
                         }
                         .background(Color.clear)
                         .contentShape(Rectangle())

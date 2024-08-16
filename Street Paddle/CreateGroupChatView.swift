@@ -2,7 +2,6 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
-
 struct CreateGroupChatView: View {
     @State private var groupName = ""
     @State private var usernames = ""
@@ -13,11 +12,14 @@ struct CreateGroupChatView: View {
 
     var body: some View {
         VStack {
-            TextField("Usernames (comma separated)", text: $usernames)
+            TextField("usernames (comma separated)", text: $usernames)
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(5.0)
                 .padding(.horizontal, 20)
+                .onChange(of: usernames) { newValue in
+                    usernames = newValue.lowercased() // Ensure only lowercase input
+                }
 
             TextField("Group Name (2+ people)", text: $groupName)
                 .padding()
@@ -99,5 +101,3 @@ struct CreateGroupChatView: View {
 #Preview {
     CreateGroupChatView(chatManager: ChatManager())
 }
-
-
