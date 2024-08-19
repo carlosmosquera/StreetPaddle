@@ -63,7 +63,11 @@ struct FriendsListView: View {
             }
             .navigationTitle("Friends List")
             .navigationDestination(isPresented: $isNavigatingToChat) {
-                InboxGroupView(selectedGroupId: newChatId)
+                if let chatId = newChatId {
+                    GroupChatView(groupId: chatId)
+                } else {
+                    Text("No Chat Selected") // Fallback if chatId is nil
+                }
             }
         }
     }
@@ -150,6 +154,7 @@ struct FriendsListView: View {
         let db = Firestore.firestore()
 
         db.collection("groups")
+            .whereField("name", isEqualTo: friend)  // Look for a group where the name matches the friend's username
             .whereField("members", arrayContains: currentUserId)
             .getDocuments { snapshot, error in
                 if let error = error {
@@ -157,19 +162,19 @@ struct FriendsListView: View {
                     return
                 }
 
-                let existingChat = snapshot?.documents.first(where: { document in
-                    let members = document.get("members") as? [String] ?? []
-                    return members.contains(friend) && members.contains(currentUserId) && members.count == 2
-                })
-
-                if let chat = existingChat {
+                if let chat = snapshot?.documents.first {
+                    // Chat with the friend's username as the group name already exists
+                    print("Chat found with friend: \(friend)")
                     self.newChatId = chat.documentID
                     self.isNavigatingToChat = true
                 } else {
+                    // No chat found, create a new one
+                    print("No chat found with friend: \(friend). Creating new chat.")
                     createNewChat(with: friend)
                 }
             }
     }
+
 
     func createNewChat(with friend: String) {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
@@ -190,40 +195,21 @@ struct FriendsListView: View {
 
                 let friendId = friendDoc.documentID
 
-                db.collection("groups")
-                    .whereField("members", arrayContains: currentUserId)
-                    .getDocuments { snapshot, error in
-                        if let error = error {
-                            print("Error fetching chats: \(error.localizedDescription)")
-                            return
-                        }
+                let newChatData: [String: Any] = [
+                    "members": [currentUserId, friendId],
+                    "createdAt": Timestamp(),
+                    "name": friend
+                ]
 
-                        let existingChat = snapshot?.documents.first(where: { document in
-                            let members = document.get("members") as? [String] ?? []
-                            return members.contains(friendId) && members.count == 2
-                        })
-
-                        if let chat = existingChat {
-                            self.newChatId = chat.documentID
-                        } else {
-                            let newChatData: [String: Any] = [
-                                "members": [currentUserId, friendId],
-                                "createdAt": Timestamp(),
-                                "name": friend
-                            ]
-
-                            var newChatRef: DocumentReference? = nil
-                            newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
-                                if let error = error {
-                                    print("Error creating chat: \(error.localizedDescription)")
-                                } else {
-                                    self.newChatId = newChatRef?.documentID
-                                }
-                            }
-                        }
-
+                var newChatRef: DocumentReference? = nil
+                newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
+                    if let error = error {
+                        print("Error creating chat: \(error.localizedDescription)")
+                    } else {
+                        self.newChatId = newChatRef?.documentID
                         self.isNavigatingToChat = true
                     }
+                }
             }
     }
 

@@ -16,7 +16,7 @@ struct MainView: View {
                     .aspectRatio(contentMode: .fill)
                     .ignoresSafeArea()
 
-                VStack {
+                VStack() {  // Add spacing between all items in the VStack
                     Spacer().frame(width: 0, height: 0.0, alignment: .topLeading)
 
                     Text("STREET PADDLE")
@@ -36,28 +36,6 @@ struct MainView: View {
                         .background(Color.green)
                         .cornerRadius(15.0)
                     }
-
-//                    NavigationLink(destination: InboxView()) {
-//                        HStack {
-//                            Text("💬")
-//                            Text("DMs")
-//                            if unreadMessagesCount > 0 {
-//                                Text("\(unreadMessagesCount)")
-//                                    .font(.subheadline)
-//                                    .foregroundColor(.white)
-//                                    .padding(5)
-//                                    .background(Color.red)
-//                                    .cornerRadius(10)
-//                            }
-//                        }
-//                        .font(.headline)
-//                        .foregroundColor(.white)
-//                        .padding()
-//                        .frame(width: 200.0, height: 45.0)
-//                        .background(Color.orange)
-//                        .cornerRadius(15.0)
-//                    }
-//                    
                     
                     NavigationLink(destination: InboxGroupView()) {
                         HStack {
@@ -72,17 +50,46 @@ struct MainView: View {
                         .cornerRadius(15.0)
                     }
 
-                    NavigationLink(destination: Shop()) {
+                    NavigationLink(destination: FriendsListView()) {
                         HStack {
-                            Text("👕")
-                            Text("Shop")
+                            Text("👫")
+                            Text("Friends")
                         }
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding()
                         .frame(width: 200.0, height: 45.0)
-                        .background(Color.blue)
+                        .background(Color.cyan)
                         .cornerRadius(15.0)
+                    }
+
+                    // Add more space between these two buttons
+                    VStack(spacing: 60) {  // Adjust the spacing here
+                        NavigationLink(destination: AvailabilityCheckInView()) {
+                            HStack {
+                                Text("📍")
+                                Text("Check In")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(width: 200.0, height: 45.0)
+                            .background(Color.brown)
+                            .cornerRadius(15.0)
+                        }
+
+                        NavigationLink(destination: Shop()) {
+                            HStack {
+                                Text("👕")
+                                Text("Shop")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(width: 200.0, height: 45.0)
+                            .background(Color.blue)
+                            .cornerRadius(15.0)
+                        }
                     }
 
                     HStack {
@@ -108,31 +115,18 @@ struct MainView: View {
                         .cornerRadius(15.0)
                     }
                     
-                    NavigationLink(destination: AvailabilityCheckInView()) {
-                        HStack {
-                            Text("📍")
-                            Text("Check In")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 200.0, height: 45.0)
-                        .background(Color.brown)
-                        .cornerRadius(15.0)
-                    }
-                    
-                    NavigationLink(destination: FriendsListView()) {
-                        HStack {
-                            Text("👫")
-                            Text("Friends")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 200.0, height: 45.0)
-                        .background(Color.cyan)
-                        .cornerRadius(15.0)
-                    }
+//                    NavigationLink(destination: GameView()) {
+//                        HStack {
+//                            Text("🎾")
+//                            Text("Play")
+//                        }
+//                        .font(.headline)
+//                        .foregroundColor(.white)
+//                        .padding()
+//                        .frame(width: 200.0, height: 45.0)
+//                        .background(Color.blue)
+//                        .cornerRadius(15.0)
+//                    }
                 }
 
                 VStack {
