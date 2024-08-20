@@ -12,7 +12,7 @@ struct CreateGroupChatView: View {
 
     var body: some View {
         VStack {
-            TextField("usernames (comma separated)", text: $usernames)
+            TextField("@usernames (comma separated)", text: $usernames)
                 .padding()
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(5.0)
@@ -70,7 +70,10 @@ struct CreateGroupChatView: View {
             }
 
             let memberIds = documents.map { $0.documentID }
-            let currentUserID = Auth.auth().currentUser?.uid ?? ""
+            guard let currentUserID = Auth.auth().currentUser?.uid else {
+                errorMessage = "Current user not authenticated."
+                return
+            }
 
             var chatData: [String: Any] = [
                 "members": [currentUserID] + memberIds,

@@ -7,6 +7,10 @@ struct PublicMessagesView: View {
     @State private var groupedMessages = [String: [PublicMessage]]()
     @State private var currentUsername: String = ""
     @State private var friends = Set<String>() // Track friends
+    @State private var textEditorHeight: CGFloat = 80 // Initial height for the TextEditor
+    @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
+    @State private var showToast = false // Track whether to show the toast message
+    @State private var toastMessage = "" // The message to show in the toast
 
     var body: some View {
         ZStack {
@@ -31,7 +35,7 @@ struct PublicMessagesView: View {
                                         .padding(.horizontal)
                                         .background(Color.green)
                                         .cornerRadius(10)
-                                       ){
+                            ){
                                 ForEach(groupedMessages[date] ?? []) { message in
                                     HStack {
                                         VStack(alignment: .leading) {
@@ -69,7 +73,7 @@ struct PublicMessagesView: View {
                                                 }
                                             }) {
                                                 Image(systemName: friends.contains(message.senderUsername) ? "checkmark.circle.fill" : "plus.circle.fill")
-                                                    .foregroundColor(friends.contains(message.senderUsername) ? .blue : .green)
+                                                    .foregroundColor(.blue)
                                                     .padding()
                                             }
                                         }
@@ -81,28 +85,67 @@ struct PublicMessagesView: View {
                 }
                 .padding(.horizontal)
                 
-                HStack {
-                    TextField("Enter your message", text: $message)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .frame(minHeight: 30)
+                // Message input area
+                HStack(alignment: .bottom) {
+                    TextEditor(text: $message)
                         .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(5.0)
+                        .frame(height: textEditorHeight)
+                        .onChange(of: message) { _ in
+                            adjustTextEditorHeight()
+                        }
                     
                     Button(action: sendMessage) {
-                        Text("Send")
+                        Image(systemName: "arrow.up.circle.fill")
+                            .resizable()
+                            .frame(width: 40, height: 40)
                             .foregroundColor(.white)
-                            .padding()
-                            .background(Color.green)
-                            .cornerRadius(15)
+                            .background(Color.blue)
+                            .clipShape(Circle())
                     }
+                    .padding(.trailing, 10)
+                    .disabled(message.isEmpty) // Disable if message is empty
                 }
                 .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+                .padding(.bottom, keyboardHeight) // Adjust for keyboard height
+                .animation(.easeOut(duration: 0.16)) // Animate the change in padding
             }
             .onAppear {
                 fetchMessages()
                 fetchCurrentUser()
                 fetchFriends() // Fetch friends on appear
+                subscribeToKeyboardEvents()
+            }
+            .onDisappear {
+                unsubscribeFromKeyboardEvents()
             }
             .navigationTitle("Public Messages")
+
+            // Toast message
+            if showToast {
+                VStack {
+                    Spacer()
+
+                    Text(toastMessage)
+                        .font(.body)
+                        .padding()
+                        .background(Color.black.opacity(0.8))
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                        .padding(.bottom, 50)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                withAnimation {
+                                    showToast = false
+                                }
+                            }
+                        }
+                }
+                .zIndex(1) // Ensure the toast is above other content
+            }
         }
     }
     
@@ -150,6 +193,7 @@ struct PublicMessagesView: View {
                     print("Error sending message: \(error.localizedDescription)")
                 } else {
                     message = ""
+                    textEditorHeight = 80 // Reset the height after sending a message
                 }
             }
         }
@@ -217,6 +261,9 @@ struct PublicMessagesView: View {
                 // Update local state after adding friend
                 self.friends.insert(username)
                 print("\(username) added as friend")
+                
+                // Show toast message
+                showToastMessage("User added to your friends list")
             }
         }
     }
@@ -242,6 +289,50 @@ struct PublicMessagesView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Toast Message Handling
+    func showToastMessage(_ message: String) {
+        toastMessage = message
+        withAnimation {
+            showToast = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation {
+                showToast = false
+            }
+        }
+    }
+
+    // MARK: - Keyboard Handling
+    private func subscribeToKeyboardEvents() {
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
+            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                self.keyboardHeight = keyboardFrame.height / 2 - 35 // Adjust height for keyboard
+            }
+        }
+        
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+            self.keyboardHeight = 0
+        }
+    }
+
+    private func unsubscribeFromKeyboardEvents() {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    private func adjustTextEditorHeight() {
+        let size = CGSize(width: UIScreen.main.bounds.width - 100, height: .infinity) // Adjusted width to account for padding and button
+        let estimatedSize = NSString(string: message).boundingRect(
+            with: size,
+            options: .usesLineFragmentOrigin,
+            attributes: [.font: UIFont.systemFont(ofSize: 16)],
+            context: nil
+        )
+        
+        let newHeight = max(80, min(estimatedSize.height + 30, 150)) // Ensure it doesn't shrink below initial height
+        textEditorHeight = newHeight
     }
 }
 

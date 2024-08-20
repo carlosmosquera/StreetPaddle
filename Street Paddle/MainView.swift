@@ -21,7 +21,7 @@ struct MainView: View {
 
                     Text("STREET PADDLE")
                         .frame(height: 0.0)
-                        .offset(x: 0.0, y: -80.0)
+                        .offset(x: 0.0, y: 0.0)
                         .font(.custom("Longhaul", size: 45))
 
                     NavigationLink(destination: PublicMessagesView()) {
@@ -35,6 +35,8 @@ struct MainView: View {
                         .frame(width: 200.0, height: 45.0)
                         .background(Color.green)
                         .cornerRadius(15.0)
+                        .padding(.top, 80)
+
                     }
                     
                     NavigationLink(destination: InboxGroupView()) {
@@ -94,7 +96,7 @@ struct MainView: View {
 
                     HStack {
                         Text("📹")
-                        Link("Live Cam", destination: URL(string: "https://hdontap.com/stream/956353/venice-beach-live/")!)
+                        Link("Live Cam", destination: URL(string: "https://hdontap.com/stream/322247/venice-beach-surf-cam/")!)
                     }
                     .font(.headline)
                     .foregroundColor(.white)
@@ -115,18 +117,18 @@ struct MainView: View {
                         .cornerRadius(15.0)
                     }
                     
-//                    NavigationLink(destination: GameView()) {
-//                        HStack {
-//                            Text("🎾")
-//                            Text("Play")
-//                        }
-//                        .font(.headline)
-//                        .foregroundColor(.white)
-//                        .padding()
-//                        .frame(width: 200.0, height: 45.0)
-//                        .background(Color.blue)
-//                        .cornerRadius(15.0)
-//                    }
+                    NavigationLink(destination: GameView()) {
+                        HStack {
+                            Text("🎮")
+                            Text("Play")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(width: 200.0, height: 45.0)
+                        .background(Color.indigo)
+                        .cornerRadius(15.0)
+                    }
                 }
 
                 VStack {
@@ -143,7 +145,7 @@ struct MainView: View {
                             Text("Log Out")
                                 .font(.headline)
                                 .foregroundColor(.white)
-                                .padding([.bottom, .trailing])
+                                .padding([.bottom,.top, .trailing])
                         }
                         .background(Color.clear)
                         .contentShape(Rectangle())

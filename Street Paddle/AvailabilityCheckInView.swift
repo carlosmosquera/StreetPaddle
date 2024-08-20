@@ -58,7 +58,7 @@ struct AvailabilityCheckInView: View {
                 List {
                     ForEach(availabilityList) { availability in
                         VStack(alignment: .leading) {
-                            Text("\(availability.userName) (\(availability.username))")
+                            Text("\(availability.userName) (@\(availability.username))")
                                 .font(.headline)
                                 .foregroundColor(Color.black)
                             Text("Duration: \(availability.duration)")
