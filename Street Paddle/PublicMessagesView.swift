@@ -7,7 +7,7 @@ struct PublicMessagesView: View {
     @State private var groupedMessages = [String: [PublicMessage]]()
     @State private var currentUsername: String = ""
     @State private var friends = Set<String>() // Track friends
-    @State private var textEditorHeight: CGFloat = 80 // Initial height for the TextEditor
+    @State private var textEditorHeight: CGFloat = 60 // Initial height for the TextEditor
     @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
     @State private var showToast = false // Track whether to show the toast message
     @State private var toastMessage = "" // The message to show in the toast
@@ -193,7 +193,7 @@ struct PublicMessagesView: View {
                     print("Error sending message: \(error.localizedDescription)")
                 } else {
                     message = ""
-                    textEditorHeight = 80 // Reset the height after sending a message
+                    textEditorHeight = 60 // Reset the height after sending a message
                 }
             }
         }
