@@ -105,7 +105,7 @@ struct GroupChatView: View {
                 Spacer()
 
                 // Message input area
-                HStack(alignment: .bottom) {
+                HStack(alignment: .center) { // Center alignment for the button
                     TextEditor(text: $messageText)
                         .padding()
                         .background(Color.gray.opacity(0.2))
@@ -125,6 +125,7 @@ struct GroupChatView: View {
                     }
                     .padding(.trailing, 10)
                     .disabled(messageText.isEmpty)
+                    .frame(height: textEditorHeight) // Ensure the button takes the full height of the TextEditor
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 10)
@@ -139,24 +140,13 @@ struct GroupChatView: View {
                 unsubscribeFromKeyboardEvents()
             }
         }
-        .navigationBarBackButtonHidden(true)
-
-    } 
+    }
     
     // Existing functions like fetchGroupData, sendMessage, subscribeToKeyboardEvents, etc.
-
-    
-
-
-
-    
-
-
     
     func fetchGroupData() {
         let db = Firestore.firestore()
         
-        // Fetch group details to get member IDs
         db.collection("groups").document(groupId).getDocument { document, error in
             if let error = error {
                 print("Error fetching group details: \(error)")
@@ -168,7 +158,6 @@ struct GroupChatView: View {
                 return
             }
             
-            // Fetch names for all members
             db.collection("users").whereField(FieldPath.documentID(), in: memberIds).getDocuments { snapshot, error in
                 if let error = error {
                     print("Error fetching user names: \(error)")
@@ -181,10 +170,8 @@ struct GroupChatView: View {
                     }
                 }
                 
-                // Update user names for the header
                 self.userNames = memberIds.compactMap { userNameDict?[$0] }
                 
-                // Fetch group messages
                 db.collection("groups").document(groupId).collection("groupmessages")
                     .order(by: "timestamp")
                     .addSnapshotListener { snapshot, error in
@@ -197,7 +184,6 @@ struct GroupChatView: View {
                         
                         self.groupMessages = documents.compactMap { document -> GroupMessage? in
                             var message = try? document.data(as: GroupMessage.self)
-                            // Set the sender's name
                             if let senderId = message?.senderId {
                                 message?.senderName = userNameDict?[senderId]
                             }
@@ -226,12 +212,10 @@ struct GroupChatView: View {
         textEditorHeight = 60 // Reset the height after sending a message
     }
     
-    // MARK: - Keyboard Handling
-
     private func subscribeToKeyboardEvents() {
         NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
             if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                self.keyboardHeight = keyboardFrame.height / 2 - 35 // Subtract some height to get closer to the keyboard
+                self.keyboardHeight = keyboardFrame.height / 2
             }
         }
         
@@ -254,7 +238,7 @@ struct GroupChatView: View {
     }
     
     private func adjustTextEditorHeight() {
-        let size = CGSize(width: UIScreen.main.bounds.width - 100, height: .infinity) // Adjusted width to account for padding and button
+        let size = CGSize(width: UIScreen.main.bounds.width - 100, height: .infinity)
         let estimatedSize = NSString(string: messageText).boundingRect(
             with: size,
             options: .usesLineFragmentOrigin,
@@ -262,12 +246,11 @@ struct GroupChatView: View {
             context: nil
         )
         
-        let newHeight = max(80, min(estimatedSize.height + 30, 150)) // Ensure it doesn't shrink below initial height
+        let newHeight = max(80, min(estimatedSize.height + 30, 150))
         textEditorHeight = newHeight
     }
 }
 
-// Define the GroupMessage struct with Equatable conformance
 struct GroupMessage: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
     var senderId: String
@@ -280,7 +263,6 @@ struct GroupMessage: Identifiable, Codable, Equatable {
     }
 }
 
-// Date formatter for message timestamps
 private let messageTimeFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateStyle = .short
