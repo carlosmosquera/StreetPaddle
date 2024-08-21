@@ -40,16 +40,19 @@ struct FriendsListView: View {
                 List {
                     ForEach(friends, id: \.username) { friend in  // Use username as unique identifier
                         HStack {
-                            Text("\(friend.name) (\(friend.username))")  // Display name and username
+                            // Text for name and username
+                            Text("\(friend.name) (\(friend.username))")
                                 .font(.headline)
                                 .padding(.leading)
                                 .onTapGesture {
+                                    // Only trigger chat navigation when the text is tapped
                                     selectedFriend = friend.username
                                     openOrCreateChat(with: friend.username)
                                 }
 
                             Spacer()
 
+                            // Minus button for removing friend
                             Button(action: {
                                 removeFriend(username: friend.username)
                             }) {
@@ -174,7 +177,6 @@ struct FriendsListView: View {
                 }
             }
     }
-
 
     func createNewChat(with friend: String) {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
