@@ -234,3 +234,7 @@ struct FriendsListView: View {
         }
     }
 }
+
+#Preview {
+    FriendsListView()
+}

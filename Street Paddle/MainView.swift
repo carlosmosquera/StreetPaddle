@@ -21,7 +21,7 @@ struct MainView: View {
 
                     Text("STREET PADDLE")
                         .frame(height: 0.0)
-                        .offset(x: 0.0, y: 0.0)
+                        .offset(x: 0.0, y: 25.0)
                         .font(.custom("Longhaul", size: 45))
 
                     NavigationLink(destination: PublicMessagesView()) {
@@ -79,19 +79,29 @@ struct MainView: View {
                             .background(Color.brown)
                             .cornerRadius(15.0)
                         }
-
-                        NavigationLink(destination: Shop()) {
-                            HStack {
-                                Text("👕")
-                                Text("Shop")
-                            }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(width: 200.0, height: 45.0)
-                            .background(Color.blue)
-                            .cornerRadius(15.0)
+                        
+                        HStack {
+                            Text("👕")
+                            Link("Shop", destination: URL(string: "https://streetpaddle1.myshopify.com/collections/all")!)
                         }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(width: 200.0, height: 45.0)
+                        .background(Color.blue)
+                        .cornerRadius(15.0)
+
+//                        NavigationLink(destination: Shop()) {
+//                            HStack {
+//                                Text("👕")
+//                                Text("Shop")
+//                            }
+//                            .font(.headline)
+//                            .foregroundColor(.white)
+//                            .padding()
+//                            .frame(width: 200.0, height: 45.0)
+//                            .background(Color.blue)
+//                            .cornerRadius(15.0)
+//                        }
                     }
 
                     HStack {
@@ -103,32 +113,53 @@ struct MainView: View {
                     .frame(width: 200.0, height: 45.0)
                     .background(Color.red)
                     .cornerRadius(15.0)
-
-                    NavigationLink(destination: TournamentsView()) {
-                        HStack {
-                            Text("🎾")
-                            Text("Tournaments")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 200.0, height: 45.0)
-                        .background(Color.blue)
-                        .cornerRadius(15.0)
-                    }
                     
-                    NavigationLink(destination: GameView()) {
-                        HStack {
-                            Text("🎮")
-                            Text("Play")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 200.0, height: 45.0)
-                        .background(Color.indigo)
-                        .cornerRadius(15.0)
+                    HStack {
+                        Text("🥇")
+                        Link("Tournaments", destination: URL(string: "https://streetpaddle.co/tournaments/")!)
                     }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(width: 200.0, height: 45.0)
+                    .background(Color.indigo)
+                    .cornerRadius(15.0)
+
+//                    NavigationLink(destination: TournamentsView()) {
+//                        HStack {
+//                            Text("🥇")
+//                            Text("Tournaments")
+//                        }
+//                        .font(.headline)
+//                        .foregroundColor(.white)
+//                        .padding()
+//                        .frame(width: 200.0, height: 45.0)
+//                        .background(Color.indigo)
+//                        .cornerRadius(15.0)
+//                    }
+                    
+                    
+                    HStack {
+                    Text("🎾")
+                    Link("Lessons", destination: URL(string: "https://streetpaddle.co/classes/")!)
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(width: 200.0, height: 45.0)
+                    .background(Color.mint)
+                    .cornerRadius(15.0)
+                    
+//                    NavigationLink(destination: GameView()) {
+//                        HStack {
+//                            Text("🎮")
+//                            Text("Play")
+//                        }
+//                        .font(.headline)
+//                        .foregroundColor(.white)
+//                        .padding()
+//                        .frame(width: 200.0, height: 45.0)
+//                        .background(Color.indigo)
+//                        .cornerRadius(15.0)
+//                    }
                 }
 
                 VStack {
@@ -137,22 +168,25 @@ struct MainView: View {
                             .font(.system(size: 26.0))
                             .fontWeight(.bold)
                             .foregroundColor(.white)
+                        
+                       
+                        .background(Color.clear)
+                        .contentShape(Rectangle())
                     }
 
                     HStack {
                         Spacer()
+
                         Button(action: logOut) {
-                            Text("Log Out")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding([.bottom,.top, .trailing])
-                        }
-                        .background(Color.clear)
-                        .contentShape(Rectangle())
+                    Text("Log Out")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding([.bottom,.top, .trailing])
+                }
                     }
                     Spacer()
                 }
-                .padding()
+                .padding([.bottom, .trailing], 12.0)
             }
             .onAppear {
                 fetchName()

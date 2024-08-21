@@ -134,6 +134,7 @@
 		2785F6E12C61CC800075C211 /* zz_old */ = {
 			isa = PBXGroup;
 			children = (
+				2791706C2C5A9C8700EB068B /* Shop.swift */,
 				2791706A2C5A9C3100EB068B /* PrivateMessagesView.swift */,
 			);
 			path = zz_old;
@@ -174,7 +175,6 @@
 				271E116D2C65D68500CF389E /* CreateGroupChatView.swift */,
 				271E116F2C65D69600CF389E /* GroupChatView.swift */,
 				270D4A7E2C66E4790068D8BD /* AvailabilityCheckInView.swift */,
-				2791706C2C5A9C8700EB068B /* Shop.swift */,
 				276E4D732C5D47D800783B6D /* TournamentsView.swift */,
 				27CA22612C6AE85B00F04987 /* FriendsListView.swift */,
 				2785F6E12C61CC800075C211 /* zz_old */,

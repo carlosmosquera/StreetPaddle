@@ -11,77 +11,80 @@ struct InboxGroupView: View {
     }
 
     var body: some View {
-        ZStack {
-            Image(.court)
-                .resizable()
-                .opacity(0.3)
-                .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                Image(.court)
+                    .resizable()
+                    .opacity(0.3)
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
 
-            VStack {
-                Text(chatManager.groupChats.isEmpty ? "No Chats" : "Chats")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .center)
+                VStack {
+                    Text(chatManager.groupChats.isEmpty ? "No Chats" : "Chats")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .center)
 
-                List {
-                    ForEach(chatManager.groupChats) { groupChat in
-                        NavigationLink(
-                            destination: GroupChatView(groupId: groupChat.id ?? ""),
-                            tag: groupChat.id ?? "",
-                            selection: $selectedGroupId
-                        ) {
-                            VStack(alignment: .leading) {
-                                HStack {
-                                    Text(groupChat.name)
-                                        .font(.headline)
-                                    Spacer()
-                                    if let timestamp = groupChat.latestMessageTimestamp {
-                                        Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
-                                            .font(.caption)
+                    List {
+                        ForEach(chatManager.groupChats) { groupChat in
+                            NavigationLink(
+                                value: groupChat.id ?? ""
+                            ) {
+                                VStack(alignment: .leading) {
+                                    HStack {
+                                        Text(groupChat.name)
+                                            .font(.headline)
+                                        Spacer()
+                                        if let timestamp = groupChat.latestMessageTimestamp {
+                                            Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+
+                                    if let latestMessage = groupChat.latestMessage {
+                                        Text(latestMessage)
+                                            .font(.subheadline)
                                             .foregroundColor(.gray)
+                                            .lineLimit(1)
                                     }
                                 }
-
-                                if let latestMessage = groupChat.latestMessage {
-                                    Text(latestMessage)
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                        .lineLimit(1)
+                                .padding()
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                            .contextMenu {
+                                Button(action: {
+                                    // Add any additional actions here (e.g., leave group)
+                                }) {
+                                    Text("Leave Group")
+                                    Image(systemName: "arrow.right.circle")
                                 }
                             }
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
                         }
-                        .contextMenu {
-                            Button(action: {
-                                // Add any additional actions here (e.g., leave group)
-                            }) {
-                                Text("Leave Group")
-                                Image(systemName: "arrow.right.circle")
+                        .onDelete(perform: deleteGroupChat)
+                    }
+                    .navigationTitle("Inbox")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            NavigationLink(destination: CreateGroupChatView(chatManager: chatManager)) {
+                                Image(systemName: "square.and.pencil")
                             }
                         }
                     }
-                    .onDelete(perform: deleteGroupChat)
-                }
-                .navigationTitle("Inbox")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        NavigationLink(destination: CreateGroupChatView(chatManager: chatManager)) {
-                            Image(systemName: "square.and.pencil")
+                    .onAppear {
+                        chatManager.fetchGroupChats()
+                        
+                        // Automatically navigate to the selected chat if needed
+                        if let selectedGroupId = selectedGroupId {
+                            DispatchQueue.main.async {
+                                self.selectedGroupId = selectedGroupId
+                            }
                         }
                     }
-                }
-                .onAppear {
-                    chatManager.fetchGroupChats()
-                    
-                    // Automatically navigate to the selected chat if needed
-                    if let selectedGroupId = selectedGroupId {
-                        DispatchQueue.main.async {
-                            self.selectedGroupId = selectedGroupId
-                        }
+                    .navigationDestination(for: String.self) { groupId in
+                        GroupChatView(groupId: groupId)
                     }
                 }
             }

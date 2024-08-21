@@ -9,8 +9,7 @@ struct GroupChatView: View {
     @State private var userNames = [String]()
     @State private var keyboardHeight: CGFloat = 0
     @Namespace private var scrollNamespace
-    @State private var textEditorHeight: CGFloat = 60 // Initial height for the TextEditor
-    @Environment(\.presentationMode) var presentationMode // To control the navigation
+    @State private var textEditorHeight: CGFloat = 60
 
     var body: some View {
         ZStack {
@@ -19,22 +18,11 @@ struct GroupChatView: View {
                 .opacity(0.3)
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
-            
+
             VStack {
                 // Header with user names
                 VStack {
                     HStack {
-//                        Button(action: {
-//                            // Custom back action
-//                            if let navigationController = UIApplication.shared.windows.first?.rootViewController as? UINavigationController {
-//                                navigationController.popViewController(animated: true)
-//                            }
-//                        }) {
-//                            Image(systemName: "arrow.left")
-//                                .foregroundColor(.blue)
-//                                .padding()
-//                        }
-
                         Text(userNames.joined(separator: ", "))
                             .font(.headline)
                             .padding(10)
@@ -46,9 +34,9 @@ struct GroupChatView: View {
                     .padding(.horizontal)
                     .background(Color.gray.opacity(0.05))
                     .cornerRadius(10)
-                    .padding(.top, 10) // Adjust top padding to reduce space
+                    .padding(.top, 10)
                 }
-                
+
                 // Chat messages view
                 ScrollViewReader { scrollView in
                     ScrollView {
@@ -64,7 +52,7 @@ struct GroupChatView: View {
                                                     .background(Color.blue)
                                                     .cornerRadius(8)
                                                     .foregroundColor(.white)
-                                                    .id(message.id) // Assign unique ID to each message
+                                                    .id(message.id)
                                                 
                                                 Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
                                                     .font(.caption)
@@ -81,7 +69,7 @@ struct GroupChatView: View {
                                                     .padding()
                                                     .background(Color.gray.opacity(0.2))
                                                     .cornerRadius(8)
-                                                    .id(message.id) // Assign unique ID to each message
+                                                    .id(message.id)
                                                 
                                                 Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
                                                     .font(.caption)
@@ -99,10 +87,10 @@ struct GroupChatView: View {
                                 }
                             }
                         }
-                        .padding(.top) // Padding to prevent content from entering the safe area
+                        .padding(.top)
                     }
-                    .padding(.top, 10) // Ensure there's a padding to keep content within safe area
-                    .safeAreaInset(edge: .top) { Color.clear.frame(height: 0) } // Respect the safe area
+                    .padding(.top, 10)
+                    .safeAreaInset(edge: .top) { Color.clear.frame(height: 0) }
                     .onChange(of: groupMessages) { _ in
                         scrollToEnd(scrollView)
                     }
@@ -113,8 +101,8 @@ struct GroupChatView: View {
                         scrollToEnd(scrollView)
                     }
                 }
-                
-                Spacer() // Push the TextEditor and Send button to the bottom
+
+                Spacer()
 
                 // Message input area
                 HStack(alignment: .bottom) {
@@ -126,7 +114,7 @@ struct GroupChatView: View {
                         .onChange(of: messageText) { _ in
                             adjustTextEditorHeight()
                         }
-                    
+
                     Button(action: sendMessage) {
                         Image(systemName: "arrow.up.circle.fill")
                             .resizable()
@@ -136,12 +124,12 @@ struct GroupChatView: View {
                             .clipShape(Circle())
                     }
                     .padding(.trailing, 10)
-                    .disabled(messageText.isEmpty) // Disable if message is empty
+                    .disabled(messageText.isEmpty)
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 10) // Add some padding at the bottom to keep it close to the keyboard
-                .padding(.bottom, keyboardHeight) // Adjust padding by keyboard height
-                .animation(.easeOut(duration: 0.16)) // Animate the change in padding
+                .padding(.bottom, 10)
+                .padding(.bottom, keyboardHeight)
+                .animation(.easeOut(duration: 0.16))
             }
             .onAppear {
                 fetchGroupData()
@@ -151,8 +139,12 @@ struct GroupChatView: View {
                 unsubscribeFromKeyboardEvents()
             }
         }
-//        .navigationBarBackButtonHidden(true) // Hide the default back button
-    }
+        .navigationBarBackButtonHidden(true)
+
+    } 
+    
+    // Existing functions like fetchGroupData, sendMessage, subscribeToKeyboardEvents, etc.
+
     
 
 
