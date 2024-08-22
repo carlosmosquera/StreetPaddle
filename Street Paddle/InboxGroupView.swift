@@ -121,9 +121,4 @@ struct InboxGroupView: View {
     InboxGroupView()
 }
 
-struct GroupChat: Identifiable, Codable {
-    @DocumentID var id: String?
-    var name: String
-    var latestMessage: String?
-    var latestMessageTimestamp: Timestamp?
-}
+

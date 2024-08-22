@@ -60,6 +60,7 @@
 		2791706D2C5A9C8700EB068B /* Shop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2791706C2C5A9C8700EB068B /* Shop.swift */; };
 		27CA22622C6AE85B00F04987 /* FriendsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27CA22612C6AE85B00F04987 /* FriendsListView.swift */; };
 		27CA22642C6AEF3B00F04987 /* ChatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27CA22632C6AEF3B00F04987 /* ChatManager.swift */; };
+		27DBDCD52C76FBB80078580B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DBDCD42C76FBB80078580B /* Models.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -85,6 +86,7 @@
 		2791706C2C5A9C8700EB068B /* Shop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shop.swift; sourceTree = "<group>"; };
 		27CA22612C6AE85B00F04987 /* FriendsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsListView.swift; sourceTree = "<group>"; };
 		27CA22632C6AEF3B00F04987 /* ChatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatManager.swift; sourceTree = "<group>"; };
+		27DBDCD42C76FBB80078580B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -179,6 +181,7 @@
 				27CA22612C6AE85B00F04987 /* FriendsListView.swift */,
 				2785F6E12C61CC800075C211 /* zz_old */,
 				2754956F2C7251B30025669C /* GameView.swift */,
+				27DBDCD42C76FBB80078580B /* Models.swift */,
 			);
 			path = "Street Paddle";
 			sourceTree = "<group>";
@@ -301,6 +304,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				27DBDCD52C76FBB80078580B /* Models.swift in Sources */,
 				27CA22642C6AEF3B00F04987 /* ChatManager.swift in Sources */,
 				279170692C5A9BDF00EB068B /* PublicMessagesView.swift in Sources */,
 				2791701B2C5A952300EB068B /* ContentView.swift in Sources */,

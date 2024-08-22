@@ -153,28 +153,7 @@ struct AvailabilityCheckInView: View {
 }
 
 // Availability model
-struct Availability: Identifiable, Codable {
-    @DocumentID var id: String?
-    var userId: String
-    var userName: String
-    var username: String
-    var duration: String
-    var level: String
-    var gameType: String
-    var timestamp: Timestamp
-    
-    func toDictionary() -> [String: Any] {
-        return [
-            "userId": userId,
-            "userName": userName,
-            "username": username,
-            "duration": duration,
-            "level": level,
-            "gameType": gameType,
-            "timestamp": timestamp
-        ]
-    }
-}
+
 
 // Date formatter for availability timestamps
 private let availabilityTimeFormatter: DateFormatter = {

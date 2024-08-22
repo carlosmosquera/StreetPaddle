@@ -130,7 +130,9 @@ struct GroupChatView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 10)
                 .padding(.bottom, keyboardHeight)
+                
                 .animation(.easeOut(duration: 0.16))
+                .offset(x: /*@START_MENU_TOKEN@*/5.0/*@END_MENU_TOKEN@*/, y: /*@START_MENU_TOKEN@*/-10.0/*@END_MENU_TOKEN@*/)
             }
             .onAppear {
                 fetchGroupData()
@@ -251,17 +253,7 @@ struct GroupChatView: View {
     }
 }
 
-struct GroupMessage: Identifiable, Codable, Equatable {
-    @DocumentID var id: String?
-    var senderId: String
-    var text: String
-    var timestamp: Timestamp
-    var senderName: String?
 
-    static func == (lhs: GroupMessage, rhs: GroupMessage) -> Bool {
-        return lhs.id == rhs.id
-    }
-}
 
 private let messageTimeFormatter: DateFormatter = {
     let formatter = DateFormatter()

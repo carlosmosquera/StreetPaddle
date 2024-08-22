@@ -341,14 +341,6 @@ struct PublicMessagesView: View {
     PublicMessagesView()
 }
 
-struct PublicMessage: Identifiable, Codable {
-    @DocumentID var id: String?
-    var content: String
-    var timestamp: Timestamp
-    var senderName: String
-    var senderUsername: String
-}
-
 private let dateFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateStyle = .medium
