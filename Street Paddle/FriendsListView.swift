@@ -87,7 +87,13 @@ struct FriendsListView: View {
             }
             if let document = document, document.exists {
                 let usernames = document.get("friends") as? [String] ?? []
-                
+
+                // Check if usernames array is not empty
+                if usernames.isEmpty {
+                    self.friends = []  // Clear the friends list if there are no friends
+                    return
+                }
+
                 // Fetch the names corresponding to each username
                 db.collection("users")
                     .whereField("username", in: usernames)
