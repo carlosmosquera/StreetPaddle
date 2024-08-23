@@ -19,10 +19,15 @@ struct PublicMessage: Identifiable, Codable {
 
 struct GroupChat: Identifiable, Codable {
     @DocumentID var id: String?
-    var name: String
+    var directChatName: String? // Direct chat name (for 2 users)
+    var groupChatName: String? // Group chat name (for 3 or more users)
     var latestMessage: String?
     var latestMessageTimestamp: Timestamp?
+    var creatorUsername: String?
+    var recipientUsernames: [String]?
+    var creatorUserID: String?
 }
+
 
 struct GroupMessage: Identifiable, Codable, Equatable {
     @DocumentID var id: String?

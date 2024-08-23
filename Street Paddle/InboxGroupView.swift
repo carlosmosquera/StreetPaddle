@@ -33,7 +33,7 @@ struct InboxGroupView: View {
                             ) {
                                 VStack(alignment: .leading) {
                                     HStack {
-                                        Text(groupChat.name)
+                                        Text(displayName(for: groupChat))
                                             .font(.headline)
                                         Spacer()
                                         if let timestamp = groupChat.latestMessageTimestamp {
@@ -91,6 +91,25 @@ struct InboxGroupView: View {
         }
     }
 
+    func displayName(for groupChat: GroupChat) -> String {
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return "Chat" }
+
+        // Determine if it's a group chat or direct chat
+        if let _ = groupChat.groupChatName, groupChat.groupChatName != nil {
+            // It's a group chat; display the group chat name for all users
+            return groupChat.groupChatName ?? "Unnamed Group"
+        } else if let creatorUserID = groupChat.creatorUserID, creatorUserID == currentUserID {
+            // User is the creator of a direct chat; show recipient's username
+            return groupChat.directChatName ?? "Chat"
+        } else {
+            // User is a recipient of a direct chat; show creator's username
+            return groupChat.creatorUsername ?? "Chat"
+        }
+    }
+
+
+
+
     func deleteGroupChat(at offsets: IndexSet) {
         let db = Firestore.firestore()
         guard let userId = Auth.auth().currentUser?.uid else { return }
@@ -120,5 +139,3 @@ struct InboxGroupView: View {
 #Preview {
     InboxGroupView()
 }
-
-

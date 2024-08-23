@@ -132,6 +132,7 @@ struct CreateGroupChatView: View {
             return
         }
 
+        // Retrieve user information from Firestore
         db.collection("users").whereField("username", in: usernamesArray).getDocuments { snapshot, error in
             if let error = error {
                 errorMessage = error.localizedDescription
@@ -144,31 +145,47 @@ struct CreateGroupChatView: View {
             }
 
             let memberIds = documents.map { $0.documentID }
+            let recipientUsernames = documents.compactMap { $0.data()["username"] as? String }
             guard let currentUserID = Auth.auth().currentUser?.uid else {
                 errorMessage = "Current user not authenticated."
                 return
             }
 
-            var chatData: [String: Any] = [
-                "members": [currentUserID] + memberIds,
-                "createdAt": Timestamp()
-            ]
-
-            if usernamesArray.count > 1 {
-                // It's a group chat, include the group name
-                chatData["name"] = groupName.isEmpty ? "Unnamed Group" : groupName
-            } else {
-                // It's a direct chat, set the name to the other user's username
-                chatData["name"] = usernamesArray.first ?? "Chat"
-            }
-
-            db.collection("groups").addDocument(data: chatData) { error in
+            // Retrieve the creator's username
+            db.collection("users").document(currentUserID).getDocument { userDoc, error in
                 if let error = error {
                     errorMessage = error.localizedDescription
+                    return
+                }
+
+                let creatorUsername = userDoc?.data()?["username"] as? String ?? "Unknown"
+
+                // Prepare the chat data
+                var chatData: [String: Any] = [
+                    "members": [currentUserID] + memberIds,
+                    "creatorUserID": currentUserID,
+                    "creatorUsername": creatorUsername,
+                    "recipientUsernames": recipientUsernames,
+                    "createdAt": Timestamp()
+                ]
+
+                if usernamesArray.count > 1 {
+                    // It's a group chat, include the group name
+                    chatData["groupChatName"] = groupName.isEmpty ? "Unnamed Group" : groupName
                 } else {
-                    // Successfully created the chat, update chat list and navigate back
-                    chatManager.fetchGroupChats() // Refresh the chat list
-                    self.presentationMode.wrappedValue.dismiss()
+                    // It's a direct chat, set the direct chat name
+                    chatData["directChatName"] = usernamesArray.first ?? "Chat"
+                }
+
+                // Save the chat to Firestore
+                db.collection("groups").addDocument(data: chatData) { error in
+                    if let error = error {
+                        errorMessage = error.localizedDescription
+                    } else {
+                        // Successfully created the chat, update chat list and navigate back
+                        chatManager.fetchGroupChats() // Refresh the chat list
+                        self.presentationMode.wrappedValue.dismiss()
+                    }
                 }
             }
         }
