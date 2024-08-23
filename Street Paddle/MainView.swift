@@ -148,18 +148,18 @@ struct MainView: View {
                     .background(Color.mint)
                     .cornerRadius(15.0)
                     
-                    NavigationLink(destination: GameView()) {
-                        HStack {
-                            Text("🎮")
-                            Text("videogame3")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 200.0, height: 45.0)
-                        .background(Color.indigo)
-                        .cornerRadius(15.0)
-                    }
+//                    NavigationLink(destination: GameView()) {
+//                        HStack {
+//                            Text("🎮")
+//                            Text("Play")
+//                        }
+//                        .font(.headline)
+//                        .foregroundColor(.white)
+//                        .padding()
+//                        .frame(width: 200.0, height: 45.0)
+//                        .background(Color.indigo)
+//                        .cornerRadius(15.0)
+//                    }
                 }
 
                 VStack {
