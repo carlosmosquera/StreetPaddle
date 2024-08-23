@@ -151,7 +151,7 @@ struct MainView: View {
                     NavigationLink(destination: GameView()) {
                         HStack {
                             Text("🎮")
-                            Text("Play")
+                            Text("videogame")
                         }
                         .font(.headline)
                         .foregroundColor(.white)
