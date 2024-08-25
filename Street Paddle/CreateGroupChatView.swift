@@ -132,7 +132,6 @@ struct CreateGroupChatView: View {
             return
         }
 
-        // Retrieve user information from Firestore
         db.collection("users").whereField("username", in: usernamesArray).getDocuments { snapshot, error in
             if let error = error {
                 errorMessage = error.localizedDescription
@@ -151,7 +150,6 @@ struct CreateGroupChatView: View {
                 return
             }
 
-            // Retrieve the creator's username
             db.collection("users").document(currentUserID).getDocument { userDoc, error in
                 if let error = error {
                     errorMessage = error.localizedDescription
@@ -170,20 +168,19 @@ struct CreateGroupChatView: View {
                 ]
 
                 if usernamesArray.count > 1 {
-                    // It's a group chat, include the group name
                     chatData["groupChatName"] = groupName.isEmpty ? "Unnamed Group" : groupName
                 } else {
-                    // It's a direct chat, set the direct chat name
                     chatData["directChatName"] = usernamesArray.first ?? "Chat"
                 }
+
+                print("Final Chat Data: \(chatData)")
 
                 // Save the chat to Firestore
                 db.collection("groups").addDocument(data: chatData) { error in
                     if let error = error {
                         errorMessage = error.localizedDescription
                     } else {
-                        // Successfully created the chat, update chat list and navigate back
-                        chatManager.fetchGroupChats() // Refresh the chat list
+                        chatManager.fetchGroupChats()
                         self.presentationMode.wrappedValue.dismiss()
                     }
                 }

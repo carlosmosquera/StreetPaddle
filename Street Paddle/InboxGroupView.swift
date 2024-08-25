@@ -94,18 +94,29 @@ struct InboxGroupView: View {
     func displayName(for groupChat: GroupChat) -> String {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return "Chat" }
 
-        // Determine if it's a group chat or direct chat
-        if let _ = groupChat.groupChatName, groupChat.groupChatName != nil {
-            // It's a group chat; display the group chat name for all users
-            return groupChat.groupChatName ?? "Unnamed Group"
-        } else if let creatorUserID = groupChat.creatorUserID, creatorUserID == currentUserID {
-            // User is the creator of a direct chat; show recipient's username
-            return groupChat.directChatName ?? "Chat"
+        if let groupChatName = groupChat.groupChatName {
+            // It's a group chat (3 or more users), return the group chat name
+            return groupChatName
+        } else if let creatorUserID = groupChat.creatorUserID, let creatorUsername = groupChat.creatorUsername {
+            // It's a direct chat (2 users), determine the name based on the current user's role
+
+            if creatorUserID == currentUserID {
+                // Current user is the creator, so show the first recipient's username
+                if let recipientUsernames = groupChat.recipientUsernames, !recipientUsernames.isEmpty {
+                    return recipientUsernames.first ?? "Chat"
+                } else {
+                    return "Chat"
+                }
+            } else {
+                // Current user is a recipient, so show the creator's username
+                return creatorUsername
+            }
         } else {
-            // User is a recipient of a direct chat; show creator's username
-            return groupChat.creatorUsername ?? "Chat"
+            // Fallback in case of missing data
+            return "Chat"
         }
     }
+
 
 
 

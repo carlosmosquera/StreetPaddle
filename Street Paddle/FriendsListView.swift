@@ -163,8 +163,8 @@ struct FriendsListView: View {
         let db = Firestore.firestore()
 
         db.collection("groups")
-            .whereField("name", isEqualTo: friend)  // Look for a group where the name matches the friend's username
             .whereField("members", arrayContains: currentUserId)
+            .whereField("name", isEqualTo: friend)  // Adjust this line if needed
             .getDocuments { snapshot, error in
                 if let error = error {
                     print("Error fetching chats: \(error.localizedDescription)")
@@ -184,10 +184,12 @@ struct FriendsListView: View {
             }
     }
 
+
     func createNewChat(with friend: String) {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
 
+        // Fetch the friend’s user ID
         db.collection("users")
             .whereField("username", isEqualTo: friend)
             .getDocuments { snapshot, error in
@@ -202,19 +204,27 @@ struct FriendsListView: View {
                 }
 
                 let friendId = friendDoc.documentID
-
+                let creatorUsername = Auth.auth().currentUser?.displayName ?? "Unknown"
+                
                 let newChatData: [String: Any] = [
                     "members": [currentUserId, friendId],
+                    "creatorUserID": currentUserId,
+                    "creatorUsername": creatorUsername,
+                    "recipientUsernames": [friend],
                     "createdAt": Timestamp(),
-                    "name": friend
+                    "directChatName": friend // Direct chat name if it's a one-on-one chat
                 ]
 
+                // Create a new chat document
                 var newChatRef: DocumentReference? = nil
                 newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
                     if let error = error {
                         print("Error creating chat: \(error.localizedDescription)")
                     } else {
-                        self.newChatId = newChatRef?.documentID
+                        // Successfully created the chat, assign the documentID
+                        if let documentId = newChatRef?.documentID {
+                            self.newChatId = documentId
+                        }
                         self.isNavigatingToChat = true
                     }
                 }
