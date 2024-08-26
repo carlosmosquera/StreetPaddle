@@ -164,7 +164,9 @@ struct CreateGroupChatView: View {
                     "creatorUserID": currentUserID,
                     "creatorUsername": creatorUsername,
                     "recipientUsernames": recipientUsernames,
-                    "createdAt": Timestamp()
+                    "createdAt": Timestamp(),
+                    "latestMessage": "", // Initialize with empty string
+                    "latestMessageTimestamp": Timestamp() // Initialize with current timestamp
                 ]
 
                 if usernamesArray.count > 1 {

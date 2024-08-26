@@ -31,23 +31,27 @@ struct InboxGroupView: View {
                             NavigationLink(
                                 value: groupChat.id ?? ""
                             ) {
-                                VStack(alignment: .leading) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(displayName(for: groupChat))
+                                        .font(.headline)
+
                                     HStack {
-                                        Text(displayName(for: groupChat))
-                                            .font(.headline)
+                                        if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
+                                            Text(latestMessage)
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                                .lineLimit(1)
+                                        } else {
+                                            Text("No preview")
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                        }
                                         Spacer()
                                         if let timestamp = groupChat.latestMessageTimestamp {
                                             Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
                                                 .font(.caption)
                                                 .foregroundColor(.gray)
                                         }
-                                    }
-
-                                    if let latestMessage = groupChat.latestMessage {
-                                        Text(latestMessage)
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                            .lineLimit(1)
                                     }
                                 }
                                 .padding()
@@ -116,10 +120,6 @@ struct InboxGroupView: View {
             return "Chat"
         }
     }
-
-
-
-
 
     func deleteGroupChat(at offsets: IndexSet) {
         let db = Firestore.firestore()
