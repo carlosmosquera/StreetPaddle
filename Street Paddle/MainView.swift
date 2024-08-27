@@ -6,6 +6,7 @@ struct MainView: View {
     @Binding var isUserAuthenticated: Bool
     @State private var name: String = ""
     @State private var unreadMessagesCount: Int = 0
+    @State private var unreadAnnouncementsCount: Int = 0
 
     var body: some View {
         NavigationView {
@@ -16,7 +17,7 @@ struct MainView: View {
                     .aspectRatio(contentMode: .fill)
                     .ignoresSafeArea()
 
-                VStack() {  // Add spacing between all items in the VStack
+                VStack() {
                     Spacer().frame(width: 0, height: 0.0, alignment: .topLeading)
 
                     Text("STREET PADDLE")
@@ -28,6 +29,15 @@ struct MainView: View {
                         HStack {
                             Text("📢")
                             Text("Announcements")
+                            
+                            if unreadAnnouncementsCount > 0 {
+                                Text("\(unreadAnnouncementsCount)")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .padding(5)
+                                    .background(Color.red)
+                                    .clipShape(Circle())
+                            }
                         }
                         .font(.headline)
                         .foregroundColor(.white)
@@ -36,7 +46,6 @@ struct MainView: View {
                         .background(Color.green)
                         .cornerRadius(15.0)
                         .padding(.top, 80)
-
                     }
                     
                     NavigationLink(destination: InboxGroupView()) {
@@ -65,8 +74,7 @@ struct MainView: View {
                         .cornerRadius(15.0)
                     }
 
-                    // Add more space between these two buttons
-                    VStack(spacing: 60) {  // Adjust the spacing here
+                    VStack(spacing: 60) {
                         NavigationLink(destination: AvailabilityCheckInView()) {
                             HStack {
                                 Text("📍")
@@ -89,19 +97,6 @@ struct MainView: View {
                         .frame(width: 200.0, height: 45.0)
                         .background(Color.blue)
                         .cornerRadius(15.0)
-
-//                        NavigationLink(destination: Shop()) {
-//                            HStack {
-//                                Text("👕")
-//                                Text("Shop")
-//                            }
-//                            .font(.headline)
-//                            .foregroundColor(.white)
-//                            .padding()
-//                            .frame(width: 200.0, height: 45.0)
-//                            .background(Color.blue)
-//                            .cornerRadius(15.0)
-//                        }
                     }
 
                     HStack {
@@ -123,43 +118,16 @@ struct MainView: View {
                     .frame(width: 200.0, height: 45.0)
                     .background(Color.indigo)
                     .cornerRadius(15.0)
-
-//                    NavigationLink(destination: TournamentsView()) {
-//                        HStack {
-//                            Text("🥇")
-//                            Text("Tournaments")
-//                        }
-//                        .font(.headline)
-//                        .foregroundColor(.white)
-//                        .padding()
-//                        .frame(width: 200.0, height: 45.0)
-//                        .background(Color.indigo)
-//                        .cornerRadius(15.0)
-//                    }
-                    
                     
                     HStack {
-                    Text("🎾")
-                    Link("Lessons", destination: URL(string: "https://streetpaddle.co/classes/")!)
+                        Text("🎾")
+                        Link("Lessons", destination: URL(string: "https://streetpaddle.co/classes/")!)
                     }
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(width: 200.0, height: 45.0)
                     .background(Color.mint)
                     .cornerRadius(15.0)
-                    
-//                    NavigationLink(destination: GameView()) {
-//                        HStack {
-//                            Text("🎮")
-//                            Text("Play")
-//                        }
-//                        .font(.headline)
-//                        .foregroundColor(.white)
-//                        .padding()
-//                        .frame(width: 200.0, height: 45.0)
-//                        .background(Color.indigo)
-//                        .cornerRadius(15.0)
-//                    }
                 }
 
                 VStack {
@@ -168,21 +136,19 @@ struct MainView: View {
                             .font(.system(size: 26.0))
                             .fontWeight(.bold)
                             .foregroundColor(.white)
-                        
-                       
-                        .background(Color.clear)
-                        .contentShape(Rectangle())
+                            .background(Color.clear)
+                            .contentShape(Rectangle())
                     }
 
                     HStack {
                         Spacer()
 
                         Button(action: logOut) {
-                    Text("Log Out")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding([.bottom,.top, .trailing])
-                }
+                            Text("Log Out")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding([.bottom,.top, .trailing])
+                        }
                     }
                     Spacer()
                 }
@@ -191,6 +157,7 @@ struct MainView: View {
             .onAppear {
                 fetchName()
                 fetchUnreadMessagesCount()
+                fetchUnreadAnnouncementsCount()
             }
         }
     }
@@ -231,6 +198,36 @@ struct MainView: View {
 
                 self.unreadMessagesCount = snapshot?.documents.count ?? 0
             }
+    }
+    
+    func fetchUnreadAnnouncementsCount() {
+        guard let user = Auth.auth().currentUser else { return }
+        let db = Firestore.firestore()
+        
+        // Use a reasonable default timestamp (Unix epoch start date)
+        let defaultTimestamp = Timestamp(date: Date(timeIntervalSince1970: 0))
+        
+        db.collection("users").document(user.uid).getDocument { document, error in
+            if let error = error {
+                print("Error fetching last read timestamp: \(error.localizedDescription)")
+                return
+            }
+            
+            var lastReadTimestamp: Timestamp = defaultTimestamp
+            if let document = document, document.exists {
+                lastReadTimestamp = document.get("lastReadAnnouncementsTimestamp") as? Timestamp ?? defaultTimestamp
+            }
+            
+            db.collection("publicMessages")
+                .whereField("timestamp", isGreaterThan: lastReadTimestamp)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        print("Error fetching public messages: \(error.localizedDescription)")
+                    } else {
+                        self.unreadAnnouncementsCount = snapshot?.documents.count ?? 0
+                    }
+                }
+        }
     }
 }
 

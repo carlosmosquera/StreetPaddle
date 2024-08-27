@@ -116,6 +116,7 @@ struct PublicMessagesView: View {
                 fetchMessages()
                 fetchCurrentUser()
                 fetchFriends() // Fetch friends on appear
+                updateLastReadTimestamp() // Mark announcements as read
                 subscribeToKeyboardEvents()
             }
             .onDisappear {
@@ -148,6 +149,27 @@ struct PublicMessagesView: View {
             }
         }
     }
+
+    // Function to update the last read timestamp when the view appears
+    func updateLastReadTimestamp() {
+        guard let user = Auth.auth().currentUser else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("users").document(user.uid).updateData([
+            "lastReadAnnouncementsTimestamp": Timestamp(date: Date())
+        ]) { error in
+            if let error = error {
+                print("Error updating last read timestamp: \(error.localizedDescription)")
+            } else {
+                print("Last read timestamp updated successfully")
+            }
+        }
+    }
+    
+    // Remaining functions (fetchMessages, sendMessage, fetchCurrentUser, etc.) remain the same
+    // ...
+
+
     
     func fetchMessages() {
         let db = Firestore.firestore()
