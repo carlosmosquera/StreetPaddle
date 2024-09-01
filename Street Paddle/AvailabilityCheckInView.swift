@@ -21,6 +21,12 @@ struct AvailabilityCheckInView: View {
                 .ignoresSafeArea()
             
             VStack {
+                Text("Only use this when you are at the courts so other players can see who's around.")
+                    .font(.headline)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding()
+
                 Form {
                     Section(header: Text("Availability")) {
                         Picker("Duration", selection: $selectedDuration) {
@@ -136,7 +142,16 @@ struct AvailabilityCheckInView: View {
                 }
                 
                 availabilityList = snapshot?.documents.compactMap { document in
-                    try? document.data(as: Availability.self)
+                    guard var availability = try? document.data(as: Availability.self) else { return nil }
+                    
+                    // Automatically delete expired availability
+                    if isExpired(availability: availability) {
+                        deleteAvailability(availability: availability)
+                        return nil
+                    }
+                    
+                    availability.id = document.documentID
+                    return availability
                 } ?? []
             }
     }
@@ -149,6 +164,33 @@ struct AvailabilityCheckInView: View {
                 print("Error deleting availability: \(error.localizedDescription)")
             }
         }
+    }
+    
+    func durationToTimeInterval(duration: String) -> TimeInterval {
+        switch duration {
+        case "30 min":
+            return 30 * 60
+        case "1 hour":
+            return 60 * 60
+        case "2 hours":
+            return 2 * 60 * 60
+        case "3 hours":
+            return 3 * 60 * 60
+        case "4 hours":
+            return 4 * 60 * 60
+        case "5 hours":
+            return 5 * 60 * 60
+        case "6 hours":
+            return 6 * 60 * 60
+        default:
+            return 0 // "Not sure" case or any other unspecified duration
+        }
+    }
+    
+    func isExpired(availability: Availability) -> Bool {
+        let interval = durationToTimeInterval(duration: availability.duration)
+        let expirationDate = availability.timestamp.dateValue().addingTimeInterval(interval)
+        return Date() > expirationDate
     }
 }
 
