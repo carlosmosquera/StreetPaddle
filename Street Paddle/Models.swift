@@ -26,6 +26,8 @@ struct GroupChat: Identifiable, Codable {
     var creatorUsername: String?
     var recipientUsernames: [String]?
     var creatorUserID: String?
+    var unreadCount: Int?
+
 }
 
 

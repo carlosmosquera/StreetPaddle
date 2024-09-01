@@ -40,27 +40,41 @@ struct InboxGroupView: View {
                             NavigationLink(
                                 value: groupChat.id ?? ""
                             ) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(displayName(for: groupChat))
-                                        .font(.headline)
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(displayName(for: groupChat))
+                                            .font(.headline)
 
-                                    HStack {
-                                        if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
-                                            Text(latestMessage)
-                                                .font(.subheadline)
-                                                .foregroundColor(.gray)
-                                                .lineLimit(1)
-                                        } else {
-                                            Text("No preview")
-                                                .font(.subheadline)
-                                                .foregroundColor(.gray)
+                                        HStack {
+                                            if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
+                                                Text(latestMessage)
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.gray)
+                                                    .lineLimit(1)
+                                            } else {
+                                                Text("No preview")
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.gray)
+                                            }
+                                            Spacer()
+                                            if let timestamp = groupChat.latestMessageTimestamp {
+                                                Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
+                                                    .font(.caption)
+                                                    .foregroundColor(.gray)
+                                            }
                                         }
-                                        Spacer()
-                                        if let timestamp = groupChat.latestMessageTimestamp {
-                                            Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
-                                                .font(.caption)
-                                                .foregroundColor(.gray)
-                                        }
+                                    }
+
+                                    Spacer()
+
+                                    // Conditionally display the badge for unread messages
+                                    if let unreadCount = groupChat.unreadCount, unreadCount > 0 {
+                                        Text("\(unreadCount)")
+                                            .font(.caption2)
+                                            .foregroundColor(.white)
+                                            .padding(6)
+                                            .background(Color.red)
+                                            .clipShape(Circle())
                                     }
                                 }
                                 .padding()
@@ -119,13 +133,9 @@ struct InboxGroupView: View {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return "Chat" }
 
         if let groupChatName = groupChat.groupChatName {
-            // It's a group chat (3 or more users), return the group chat name
             return groupChatName
         } else if let creatorUserID = groupChat.creatorUserID, let creatorUsername = groupChat.creatorUsername {
-            // It's a direct chat (2 users), determine the name based on the current user's role
-
             if creatorUserID == currentUserID {
-                // Current user is the creator, so show the first recipient's username
                 if let recipientUsername = groupChat.recipientUsernames?.first {
                     fetchUserNameByUsername(recipientUsername) { name in
                         if let name = name {
@@ -137,7 +147,6 @@ struct InboxGroupView: View {
                     return "Chat"
                 }
             } else {
-                // Current user is a recipient, so show the creator's username
                 fetchUserNameByUsername(creatorUsername) { name in
                     if let name = name {
                         self.userNameCache[creatorUsername] = name
@@ -146,13 +155,11 @@ struct InboxGroupView: View {
                 return "\(creatorUsername)" + (userNameCache[creatorUsername] != nil ? " (\(userNameCache[creatorUsername]!))" : "")
             }
         } else {
-            // Fallback in case of missing data
             return "Chat"
         }
     }
 
     func fetchUserNameByUsername(_ username: String, completion: @escaping (String?) -> Void) {
-        // Assuming you have a way to map from username to userID, then fetch the name
         db.collection("users").whereField("username", isEqualTo: username).getDocuments { querySnapshot, error in
             if let error = error {
                 print("Error fetching user name by username: \(error)")
@@ -172,7 +179,6 @@ struct InboxGroupView: View {
             if index < chatManager.groupChats.count {
                 let groupChat = chatManager.groupChats[index]
 
-                // Delete the group chat document from Firestore
                 if let groupId = groupChat.id {
                     db.collection("groups").document(groupId).delete { error in
                         if let error = error {
@@ -183,13 +189,8 @@ struct InboxGroupView: View {
                     }
                 }
 
-                // Remove the group chat from the local array
                 chatManager.groupChats.remove(at: index)
             }
         }
     }
-}
-
-#Preview {
-    InboxGroupView()
 }

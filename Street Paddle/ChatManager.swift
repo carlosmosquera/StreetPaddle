@@ -28,28 +28,11 @@ class ChatManager: ObservableObject {
                     var groupChat = try? document.data(as: GroupChat.self)
                     if let groupChatId = groupChat?.id {
                         dispatchGroup.enter()
-                        self.db.collection("groups")
-                            .document(groupChatId)
-                            .collection("groupmessages")
-                            .order(by: "timestamp", descending: true)
-                            .limit(to: 1)
-                            .getDocuments { messageSnapshot, error in
-                                if let error = error {
-                                    print("Error fetching latest message: \(error)")
-                                    dispatchGroup.leave()
-                                    return
-                                }
-                                
-                                if let messageDoc = messageSnapshot?.documents.first {
-                                    groupChat?.latestMessage = messageDoc.data()["text"] as? String
-                                    groupChat?.latestMessageTimestamp = messageDoc.data()["timestamp"] as? Timestamp
-                                }
-                                
-                                dispatchGroup.leave()
-                            }
-                    }
-                    if let chat = groupChat {
-                        updatedGroupChats.append(chat)
+                        self.fetchUnreadCount(for: groupChatId, userId: userId) { unreadCount in
+                            groupChat?.unreadCount = unreadCount
+                            updatedGroupChats.append(groupChat!)
+                            dispatchGroup.leave()
+                        }
                     }
                 }
 
@@ -59,26 +42,43 @@ class ChatManager: ObservableObject {
             }
     }
 
-    func fetchUserName(userID: String, completion: @escaping (String?) -> Void) {
-        // Check cache first
-        if let cachedName = userNamesCache[userID] {
-            completion(cachedName)
-            return
-        }
+    private func fetchUnreadCount(for groupChatId: String, userId: String, completion: @escaping (Int) -> Void) {
+        let userLastReadDocRef = db.collection("groups").document(groupChatId).collection("members").document(userId)
         
-        db.collection("users").document(userID).getDocument { document, error in
+        userLastReadDocRef.getDocument { document, error in
             if let error = error {
-                print("Error fetching user name: \(error)")
-                completion(nil)
+                print("Error fetching last read timestamp: \(error)")
+                completion(0)
                 return
             }
-            
-            if let document = document, document.exists, let name = document.data()?["name"] as? String {
-                self.userNamesCache[userID] = name // Cache the name
-                completion(name)
-            } else {
-                completion(nil)
+
+            guard let document = document, let lastReadTimestamp = document.data()?["lastReadTimestamp"] as? Timestamp else {
+                // If there's no last read timestamp, consider all messages as unread
+                self.db.collection("groups").document(groupChatId).collection("groupmessages")
+                    .getDocuments { snapshot, error in
+                        if let error = error {
+                            print("Error fetching messages: \(error)")
+                            completion(0)
+                            return
+                        }
+                        let unreadCount = snapshot?.documents.count ?? 0
+                        completion(unreadCount)
+                    }
+                return
             }
+
+            self.db.collection("groups").document(groupChatId).collection("groupmessages")
+                .whereField("timestamp", isGreaterThan: lastReadTimestamp)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        print("Error fetching unread messages: \(error)")
+                        completion(0)
+                        return
+                    }
+
+                    let unreadCount = snapshot?.documents.count ?? 0
+                    completion(unreadCount)
+                }
         }
     }
 }
