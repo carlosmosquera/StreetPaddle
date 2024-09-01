@@ -5,6 +5,7 @@ import FirebaseAuth
 struct InboxGroupView: View {
     @ObservedObject var chatManager = ChatManager()
     @State private var selectedGroupId: String? = nil
+    @State private var searchText: String = ""
 
     init(selectedGroupId: String? = nil) {
         _selectedGroupId = State(initialValue: selectedGroupId)
@@ -26,8 +27,14 @@ struct InboxGroupView: View {
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .center)
 
+                    // Search Bar
+                    TextField("Search group chats...", text: $searchText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+
                     List {
-                        ForEach(chatManager.groupChats) { groupChat in
+                        ForEach(filteredGroupChats) { groupChat in
                             NavigationLink(
                                 value: groupChat.id ?? ""
                             ) {
@@ -91,6 +98,17 @@ struct InboxGroupView: View {
                         GroupChatView(groupId: groupId)
                     }
                 }
+            }
+        }
+    }
+
+    // Computed property to filter group chats based on the search text
+    var filteredGroupChats: [GroupChat] {
+        if searchText.isEmpty {
+            return chatManager.groupChats
+        } else {
+            return chatManager.groupChats.filter { groupChat in
+                displayName(for: groupChat).localizedCaseInsensitiveContains(searchText)
             }
         }
     }
