@@ -4,6 +4,7 @@ import FirebaseAuth
 
 class ChatManager: ObservableObject {
     @Published var groupChats: [GroupChat] = []
+    @Published var totalUnreadCount: Int = 0
     private var db = Firestore.firestore()
     private var userNamesCache: [String: String] = [:] // Cache to store user names
 
@@ -21,6 +22,7 @@ class ChatManager: ObservableObject {
                 guard let documents = snapshot?.documents else { return }
 
                 var updatedGroupChats = [GroupChat]()
+                var newTotalUnreadCount = 0
 
                 let dispatchGroup = DispatchGroup()
                 
@@ -31,6 +33,7 @@ class ChatManager: ObservableObject {
                         self.fetchUnreadCount(for: groupChatId, userId: userId) { unreadCount in
                             groupChat?.unreadCount = unreadCount
                             updatedGroupChats.append(groupChat!)
+                            newTotalUnreadCount += unreadCount
                             dispatchGroup.leave()
                         }
                     }
@@ -38,6 +41,7 @@ class ChatManager: ObservableObject {
 
                 dispatchGroup.notify(queue: .main) {
                     self.groupChats = updatedGroupChats
+                    self.totalUnreadCount = newTotalUnreadCount
                 }
             }
     }
@@ -53,7 +57,6 @@ class ChatManager: ObservableObject {
             }
 
             guard let document = document, let lastReadTimestamp = document.data()?["lastReadTimestamp"] as? Timestamp else {
-                // If there's no last read timestamp, consider all messages as unread
                 self.db.collection("groups").document(groupChatId).collection("groupmessages")
                     .getDocuments { snapshot, error in
                         if let error = error {

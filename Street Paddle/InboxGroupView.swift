@@ -3,13 +3,14 @@ import FirebaseFirestore
 import FirebaseAuth
 
 struct InboxGroupView: View {
-    @ObservedObject var chatManager = ChatManager()
+    @ObservedObject var chatManager: ChatManager
     @State private var selectedGroupId: String? = nil
     @State private var searchText: String = ""
     @State private var userNameCache: [String: String] = [:] // Cache for user names
     private var db = Firestore.firestore() // Firestore reference
 
-    init(selectedGroupId: String? = nil) {
+    init(chatManager: ChatManager, selectedGroupId: String? = nil) {
+        _chatManager = ObservedObject(wrappedValue: chatManager)
         _selectedGroupId = State(initialValue: selectedGroupId)
     }
 

@@ -7,6 +7,7 @@ struct MainView: View {
     @State private var name: String = ""
     @State private var unreadMessagesCount: Int = 0
     @State private var unreadAnnouncementsCount: Int = 0
+    @ObservedObject var chatManager = ChatManager() // Add this line to observe the ChatManager
 
     var body: some View {
         NavigationView {
@@ -48,10 +49,19 @@ struct MainView: View {
                         .padding(.top, 80)
                     }
                     
-                    NavigationLink(destination: InboxGroupView()) {
+                    NavigationLink(destination: InboxGroupView(chatManager: chatManager)) { // Pass the chatManager
                         HStack {
                             Text("💬")
                             Text("Messages")
+                            
+                            if chatManager.totalUnreadCount > 0 { // Show badge only if there are unread messages
+                                Text("\(chatManager.totalUnreadCount)")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .padding(5)
+                                    .background(Color.red)
+                                    .clipShape(Circle())
+                            }
                         }
                         .font(.headline)
                         .foregroundColor(.white)
@@ -156,7 +166,7 @@ struct MainView: View {
             }
             .onAppear {
                 fetchName()
-                fetchUnreadMessagesCount()
+                chatManager.fetchGroupChats() // Fetch group chats to calculate unread messages
                 fetchUnreadAnnouncementsCount()
             }
         }
@@ -183,23 +193,6 @@ struct MainView: View {
         }
     }
 
-    func fetchUnreadMessagesCount() {
-        guard let user = Auth.auth().currentUser else { return }
-        let db = Firestore.firestore()
-
-        db.collection("messages")
-            .whereField("receiverId", isEqualTo: user.uid)
-            .whereField("isRead", isEqualTo: false)
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("Error fetching unread messages: \(error.localizedDescription)")
-                    return
-                }
-
-                self.unreadMessagesCount = snapshot?.documents.count ?? 0
-            }
-    }
-    
     func fetchUnreadAnnouncementsCount() {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
