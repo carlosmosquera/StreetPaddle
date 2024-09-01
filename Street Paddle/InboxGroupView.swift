@@ -6,6 +6,8 @@ struct InboxGroupView: View {
     @ObservedObject var chatManager = ChatManager()
     @State private var selectedGroupId: String? = nil
     @State private var searchText: String = ""
+    @State private var userNameCache: [String: String] = [:] // Cache for user names
+    private var db = Firestore.firestore() // Firestore reference
 
     init(selectedGroupId: String? = nil) {
         _selectedGroupId = State(initialValue: selectedGroupId)
@@ -124,14 +126,24 @@ struct InboxGroupView: View {
 
             if creatorUserID == currentUserID {
                 // Current user is the creator, so show the first recipient's username
-                if let recipientUsernames = groupChat.recipientUsernames, !recipientUsernames.isEmpty {
-                    return recipientUsernames.first ?? "Chat"
+                if let recipientUsername = groupChat.recipientUsernames?.first {
+                    fetchUserNameByUsername(recipientUsername) { name in
+                        if let name = name {
+                            self.userNameCache[recipientUsername] = name
+                        }
+                    }
+                    return "\(recipientUsername)" + (userNameCache[recipientUsername] != nil ? " (\(userNameCache[recipientUsername]!))" : "")
                 } else {
                     return "Chat"
                 }
             } else {
                 // Current user is a recipient, so show the creator's username
-                return creatorUsername
+                fetchUserNameByUsername(creatorUsername) { name in
+                    if let name = name {
+                        self.userNameCache[creatorUsername] = name
+                    }
+                }
+                return "\(creatorUsername)" + (userNameCache[creatorUsername] != nil ? " (\(userNameCache[creatorUsername]!))" : "")
             }
         } else {
             // Fallback in case of missing data
@@ -139,8 +151,21 @@ struct InboxGroupView: View {
         }
     }
 
+    func fetchUserNameByUsername(_ username: String, completion: @escaping (String?) -> Void) {
+        // Assuming you have a way to map from username to userID, then fetch the name
+        db.collection("users").whereField("username", isEqualTo: username).getDocuments { querySnapshot, error in
+            if let error = error {
+                print("Error fetching user name by username: \(error)")
+                completion(nil)
+            } else if let document = querySnapshot?.documents.first, let name = document.data()["name"] as? String {
+                completion(name)
+            } else {
+                completion(nil)
+            }
+        }
+    }
+
     func deleteGroupChat(at offsets: IndexSet) {
-        let db = Firestore.firestore()
         guard let userId = Auth.auth().currentUser?.uid else { return }
 
         offsets.forEach { index in

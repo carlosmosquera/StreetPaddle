@@ -5,6 +5,7 @@ import FirebaseAuth
 class ChatManager: ObservableObject {
     @Published var groupChats: [GroupChat] = []
     private var db = Firestore.firestore()
+    private var userNamesCache: [String: String] = [:] // Cache to store user names
 
     func fetchGroupChats() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
@@ -56,5 +57,28 @@ class ChatManager: ObservableObject {
                     self.groupChats = updatedGroupChats
                 }
             }
+    }
+
+    func fetchUserName(userID: String, completion: @escaping (String?) -> Void) {
+        // Check cache first
+        if let cachedName = userNamesCache[userID] {
+            completion(cachedName)
+            return
+        }
+        
+        db.collection("users").document(userID).getDocument { document, error in
+            if let error = error {
+                print("Error fetching user name: \(error)")
+                completion(nil)
+                return
+            }
+            
+            if let document = document, document.exists, let name = document.data()?["name"] as? String {
+                self.userNamesCache[userID] = name // Cache the name
+                completion(name)
+            } else {
+                completion(nil)
+            }
+        }
     }
 }
