@@ -97,7 +97,7 @@ struct InboxGroupView: View {
                                 }
                                 .contextMenu {
                                     Button(action: {
-                                        // Add any additional actions here (e.g., leave group)
+                                        leaveGroupChat(groupChat: groupChat)
                                     }) {
                                         Text("Leave Group")
                                         Image(systemName: "arrow.right.circle")
@@ -189,24 +189,20 @@ struct InboxGroupView: View {
         }
     }
 
-    func deleteGroupChat(at offsets: IndexSet) {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+    func leaveGroupChat(groupChat: GroupChat) {
+        guard let userId = Auth.auth().currentUser?.uid, let groupId = groupChat.id else { return }
 
-        offsets.forEach { index in
-            if index < chatManager.groupChats.count {
-                let groupChat = chatManager.groupChats[index]
-
-                if let groupId = groupChat.id {
-                    db.collection("groups").document(groupId).delete { error in
-                        if let error = error {
-                            print("Error deleting group chat: \(error)")
-                        } else {
-                            print("Group chat successfully deleted!")
-                        }
-                    }
+        // Remove the current user from the group's member list
+        db.collection("groups").document(groupId).updateData([
+            "members": FieldValue.arrayRemove([userId])
+        ]) { error in
+            if let error = error {
+                print("Error leaving group chat: \(error)")
+            } else {
+                // Optionally remove the chat from the local list
+                if let index = chatManager.groupChats.firstIndex(where: { $0.id == groupId }) {
+                    chatManager.groupChats.remove(at: index)
                 }
-
-                chatManager.groupChats.remove(at: index)
             }
         }
     }
