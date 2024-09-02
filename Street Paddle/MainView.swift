@@ -139,7 +139,6 @@ struct MainView: View {
                     .background(Color.mint)
                     .cornerRadius(15.0)
                 }
-
                 VStack {
                     HStack {
                         Text(name)

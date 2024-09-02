@@ -13,7 +13,7 @@ struct FriendsListView: View {
     @State private var isAddingFriend = false
 
     var body: some View {
-        NavigationStack {
+        GeometryReader { geometry in
             VStack {
                 // Search bar for adding new friends
                 TextField("Search for users...", text: $searchText)
@@ -22,7 +22,6 @@ struct FriendsListView: View {
                     .cornerRadius(8)
                     .padding(.horizontal)
                     .onChange(of: searchText) { newValue in
-                        // Convert to lowercase and search for users
                         searchText = newValue.lowercased()
                         searchUsers(query: searchText)
                     }
@@ -45,7 +44,6 @@ struct FriendsListView: View {
                                 .font(.headline)
                                 .padding(.leading)
                                 .onTapGesture {
-                                    // Only trigger chat navigation when the text is tapped
                                     selectedFriend = friend.username
                                     openOrCreateChat(with: friend.username)
                                 }
@@ -60,18 +58,23 @@ struct FriendsListView: View {
                                     .foregroundColor(.red)
                             }
                         }
+                        .background(
+                            NavigationLink(
+                                destination: GroupChatView(groupId: newChatId ?? ""),
+                                isActive: Binding(
+                                    get: { selectedFriend == friend.username && isNavigatingToChat },
+                                    set: { if !$0 { selectedFriend = nil } }
+                                )
+                            ) {
+                                EmptyView()
+                            }
+                            .hidden()
+                        )
                     }
                 }
                 .onAppear(perform: fetchFriends)
             }
             .navigationTitle("Friends List")
-            .navigationDestination(isPresented: $isNavigatingToChat) {
-                if let chatId = newChatId {
-                    GroupChatView(groupId: chatId)
-                } else {
-                    Text("No Chat Selected") // Fallback if chatId is nil
-                }
-            }
         }
     }
 
@@ -88,13 +91,11 @@ struct FriendsListView: View {
             if let document = document, document.exists {
                 let usernames = document.get("friends") as? [String] ?? []
 
-                // Check if usernames array is not empty
                 if usernames.isEmpty {
-                    self.friends = []  // Clear the friends list if there are no friends
+                    self.friends = []
                     return
                 }
 
-                // Fetch the names corresponding to each username
                 db.collection("users")
                     .whereField("username", in: usernames)
                     .getDocuments { snapshot, error in
@@ -151,7 +152,7 @@ struct FriendsListView: View {
             if let error = error {
                 print("Error adding friend: \(error.localizedDescription)")
             } else {
-                fetchFriends()  // Refresh the friends list to include the new friend
+                fetchFriends()
                 self.searchText = ""
                 self.suggestedUsers = []
             }
@@ -164,7 +165,7 @@ struct FriendsListView: View {
 
         db.collection("groups")
             .whereField("members", arrayContains: currentUserId)
-            .whereField("name", isEqualTo: friend)  // Adjust this line if needed
+            .whereField("name", isEqualTo: friend)
             .getDocuments { snapshot, error in
                 if let error = error {
                     print("Error fetching chats: \(error.localizedDescription)")
@@ -172,24 +173,18 @@ struct FriendsListView: View {
                 }
 
                 if let chat = snapshot?.documents.first {
-                    // Chat with the friend's username as the group name already exists
-                    print("Chat found with friend: \(friend)")
                     self.newChatId = chat.documentID
                     self.isNavigatingToChat = true
                 } else {
-                    // No chat found, create a new one
-                    print("No chat found with friend: \(friend). Creating new chat.")
                     createNewChat(with: friend)
                 }
             }
     }
 
-
     func createNewChat(with friend: String) {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
 
-        // Fetch the friend’s user ID
         db.collection("users")
             .whereField("username", isEqualTo: friend)
             .getDocuments { snapshot, error in
@@ -212,16 +207,14 @@ struct FriendsListView: View {
                     "creatorUsername": creatorUsername,
                     "recipientUsernames": [friend],
                     "createdAt": Timestamp(),
-                    "directChatName": friend // Direct chat name if it's a one-on-one chat
+                    "directChatName": friend
                 ]
 
-                // Create a new chat document
                 var newChatRef: DocumentReference? = nil
                 newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
                     if let error = error {
                         print("Error creating chat: \(error.localizedDescription)")
                     } else {
-                        // Successfully created the chat, assign the documentID
                         if let documentId = newChatRef?.documentID {
                             self.newChatId = documentId
                         }
