@@ -1,6 +1,6 @@
-    import SwiftUI
-    import FirebaseAuth
-    import FirebaseFirestore
+import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 
 struct GroupChatView: View {
     var groupId: String
@@ -14,139 +14,145 @@ struct GroupChatView: View {
     private let db = Firestore.firestore()
 
     var body: some View {
-        ZStack {
-            Image(.court)
-                .resizable()
-                .opacity(0.3)
-                .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                Image(.court)
+                    .resizable()
+                    .opacity(0.3)
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
 
-            VStack {
-                // Header with user names
-                VStack {
-                    HStack {
-                        Text(userNames.joined(separator: ", "))
-                            .font(.headline)
-                            .padding(10)
-                            .frame(maxWidth: .infinity)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(10)
-                            .multilineTextAlignment(.center)
+                VStack(spacing: 0) {
+                    // Fixed Header with user names
+                    VStack {
+                        HStack {
+                            Text(userNames.joined(separator: ", "))
+                                .font(.headline)
+                                .padding(10)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(10)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal)
+                        .background(Color.gray.opacity(0.05))
+                        .cornerRadius(10)
+                        .padding(.top, 5) // Adjust this value to position the bar closer to the top
                     }
-                    .padding(.horizontal)
-                    .background(Color.gray.opacity(0.05))
-                    .cornerRadius(10)
-                    .padding(.top, 10)
-                }
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .background(Color.clear)
+                    .zIndex(1)
 
-                // Chat messages view
-                ScrollViewReader { scrollView in
-                    ScrollView {
-                        VStack(alignment: .leading) {
-                            ForEach(groupMessages) { message in
+                    Spacer()
+
+                    VStack(spacing: 0) {
+                        ScrollViewReader { scrollView in
+                            ScrollView {
                                 VStack(alignment: .leading) {
-                                    HStack {
-                                        if message.senderId == Auth.auth().currentUser?.uid {
-                                            Spacer()
-                                            VStack(alignment: .trailing) {
-                                                Text(message.text)
-                                                    .padding()
-                                                    .background(Color.blue)
-                                                    .cornerRadius(8)
-                                                    .foregroundColor(.white)
-                                                    .id(message.id)
-                                                
-                                                Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
-                                                    .font(.caption)
-                                                    .foregroundColor(.gray)
-                                                    .padding(.top, 2)
-                                                
-                                                Text(message.senderName ?? "Unknown")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.gray)
+                                    ForEach(groupMessages) { message in
+                                        VStack(alignment: .leading) {
+                                            HStack {
+                                                if message.senderId == Auth.auth().currentUser?.uid {
+                                                    Spacer()
+                                                    VStack(alignment: .trailing) {
+                                                        Text(message.text)
+                                                            .padding()
+                                                            .background(Color.blue)
+                                                            .cornerRadius(8)
+                                                            .foregroundColor(.white)
+                                                            .id(message.id)
+                                                        
+                                                        Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                            .padding(.top, 2)
+                                                        
+                                                        Text(message.senderName ?? "Unknown")
+                                                            .font(.caption2)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                } else {
+                                                    VStack(alignment: .leading) {
+                                                        Text(message.text)
+                                                            .padding()
+                                                            .background(Color.gray.opacity(0.2))
+                                                            .cornerRadius(8)
+                                                            .id(message.id)
+                                                        
+                                                        Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                            .padding(.top, 2)
+                                                        
+                                                        Text(message.senderName ?? "Unknown")
+                                                            .font(.caption2)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                    Spacer()
+                                                }
                                             }
-                                        } else {
-                                            VStack(alignment: .leading) {
-                                                Text(message.text)
-                                                    .padding()
-                                                    .background(Color.gray.opacity(0.2))
-                                                    .cornerRadius(8)
-                                                    .id(message.id)
-                                                
-                                                Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
-                                                    .font(.caption)
-                                                    .foregroundColor(.gray)
-                                                    .padding(.top, 2)
-                                                
-                                                Text(message.senderName ?? "Unknown")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.gray)
-                                            }
-                                            Spacer()
+                                            .padding(.horizontal)
                                         }
                                     }
-                                    .padding(.horizontal)
                                 }
+                                .padding(.top, 10)
+                            }
+                            .onChange(of: groupMessages) { _ in
+                                scrollToEnd(scrollView)
+                            }
+                            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                                scrollToEnd(scrollView)
+                            }
+                            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                                scrollToEnd(scrollView)
                             }
                         }
-                        .padding(.top)
-                    }
-                    .padding(.top, 10)
-                    .safeAreaInset(edge: .top) { Color.clear.frame(height: 0) }
-                    .onChange(of: groupMessages) { _ in
-                        scrollToEnd(scrollView)
-                    }
-                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                        scrollToEnd(scrollView)
-                    }
-                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                        scrollToEnd(scrollView)
-                    }
-                }
 
-                Spacer()
+                        Spacer()
 
-                // Message input area
-                HStack(alignment: .center) { // Center alignment for the button
-                    TextEditor(text: $messageText)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(5.0)
-                        .frame(height: textEditorHeight)
-                        .onChange(of: messageText) { _ in
-                            adjustTextEditorHeight()
+                        // Message input area
+                        HStack(alignment: .center) {
+                            TextEditor(text: $messageText)
+                                .padding()
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(5.0)
+                                .frame(height: textEditorHeight)
+                                .onChange(of: messageText) { _ in
+                                    adjustTextEditorHeight()
+                                }
+
+                            Button(action: {
+                                sendMessage()
+                                updateLastReadTimestamp(for: groupId) // Update last read timestamp after sending a message
+                                updateUnreadCount(for: groupId, unreadCount: 0) // Reset unread count to 0 after sending a message
+                            }) {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .resizable()
+                                    .frame(width: 40, height: 40)
+                                    .foregroundColor(.white)
+                                    .background(Color.blue)
+                                    .clipShape(Circle())
+                            }
+                            .padding(.trailing, 10)
+                            .disabled(messageText.isEmpty)
+                            .frame(height: textEditorHeight)
                         }
-
-                    Button(action: {
-                        sendMessage()
-                        updateLastReadTimestamp(for: groupId) // Update last read timestamp after sending a message
-                        updateUnreadCount(for: groupId, unreadCount: 0) // Reset unread count to 0 after sending a message
-                    }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .resizable()
-                            .frame(width: 40, height: 40)
-                            .foregroundColor(.white)
-                            .background(Color.blue)
-                            .clipShape(Circle())
+                        .padding(.horizontal)
+                        .padding(.bottom, 10)
+                        .padding(.bottom, keyboardHeight) // This ensures the input area moves up with the keyboard
+                        .animation(.easeOut(duration: 0.16))
                     }
-                    .padding(.trailing, 10)
-                    .disabled(messageText.isEmpty)
-                    .frame(height: textEditorHeight) // Ensure the button takes the full height of the TextEditor
+                    .frame(width: geometry.size.width)
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 10)
-                .padding(.bottom, keyboardHeight)
-                
-                .animation(.easeOut(duration: 0.16))
-                .offset(x: 5.0, y: -10.0)
-            }
-            .onAppear {
-                fetchGroupData()
-                subscribeToKeyboardEvents()
-                updateLastReadTimestamp(for: groupId)  // Mark messages as read
-            }
-            .onDisappear {
-                unsubscribeFromKeyboardEvents()
+                .onAppear {
+                    fetchGroupData()
+                    subscribeToKeyboardEvents()
+                    updateLastReadTimestamp(for: groupId)  // Mark messages as read
+                }
+                .onDisappear {
+                    unsubscribeFromKeyboardEvents()
+                }
             }
         }
     }
@@ -206,10 +212,6 @@ struct GroupChatView: View {
         textEditorHeight = 60 // Reset the height after sending a message
     }
 
-    // Other existing methods like fetchGroupData, subscribeToKeyboardEvents, etc.
-
-
-    
     func fetchGroupData() {
         let db = Firestore.firestore()
         
@@ -260,55 +262,52 @@ struct GroupChatView: View {
         }
     }
 
-
-        private func subscribeToKeyboardEvents() {
-            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
-                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                    self.keyboardHeight = keyboardFrame.height / 2
-                }
-            }
-            
-            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
-                self.keyboardHeight = 0
-            }
-        }
-
-        private func unsubscribeFromKeyboardEvents() {
-            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
-            NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
-        }
-        
-        private func scrollToEnd(_ scrollView: ScrollViewProxy) {
-            if let lastMessageId = groupMessages.last?.id {
-                withAnimation {
-                    scrollView.scrollTo(lastMessageId, anchor: .bottom)
-                }
+    private func subscribeToKeyboardEvents() {
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
+            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                self.keyboardHeight = keyboardFrame.height - 40
             }
         }
         
-        private func adjustTextEditorHeight() {
-            let size = CGSize(width: UIScreen.main.bounds.width - 100, height: .infinity)
-            let estimatedSize = NSString(string: messageText).boundingRect(
-                with: size,
-                options: .usesLineFragmentOrigin,
-                attributes: [.font: UIFont.systemFont(ofSize: 16)],
-                context: nil
-            )
-            
-            let newHeight = max(80, min(estimatedSize.height + 30, 150))
-            textEditorHeight = newHeight
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+            self.keyboardHeight = 0
         }
     }
 
-
-
-    private let messageTimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter
-    }()
-
-    #Preview {
-        GroupChatView(groupId: "exampleGroupId")
+    private func unsubscribeFromKeyboardEvents() {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
     }
+    
+    private func scrollToEnd(_ scrollView: ScrollViewProxy) {
+        if let lastMessageId = groupMessages.last?.id {
+            withAnimation {
+                scrollView.scrollTo(lastMessageId, anchor: .bottom)
+            }
+        }
+    }
+    
+    private func adjustTextEditorHeight() {
+        let size = CGSize(width: UIScreen.main.bounds.width - 100, height: .infinity)
+        let estimatedSize = NSString(string: messageText).boundingRect(
+            with: size,
+            options: .usesLineFragmentOrigin,
+            attributes: [.font: UIFont.systemFont(ofSize: 16)],
+            context: nil
+        )
+        
+        let newHeight = max(80, min(estimatedSize.height + 30, 150))
+        textEditorHeight = newHeight
+    }
+}
+
+private let messageTimeFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .short
+    return formatter
+}()
+
+#Preview {
+    GroupChatView(groupId: "exampleGroupId")
+}
