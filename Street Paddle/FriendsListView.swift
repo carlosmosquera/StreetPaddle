@@ -165,7 +165,7 @@ struct FriendsListView: View {
 
         db.collection("groups")
             .whereField("members", arrayContains: currentUserId)
-            .whereField("name", isEqualTo: friend)
+            .whereField("directChatName", isEqualTo: friend)
             .getDocuments { snapshot, error in
                 if let error = error {
                     print("Error fetching chats: \(error.localizedDescription)")
@@ -173,9 +173,11 @@ struct FriendsListView: View {
                 }
 
                 if let chat = snapshot?.documents.first {
+                    // Chat with the friend's username as the group name already exists
                     self.newChatId = chat.documentID
                     self.isNavigatingToChat = true
                 } else {
+                    // No chat found, create a new one
                     createNewChat(with: friend)
                 }
             }
@@ -244,8 +246,4 @@ struct FriendsListView: View {
             }
         }
     }
-}
-
-#Preview {
-    FriendsListView()
 }
