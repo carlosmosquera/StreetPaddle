@@ -23,14 +23,19 @@ struct InboxGroupView: View {
                     .aspectRatio(contentMode: .fill)
                     .ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // Fixed Search Bar
-                    HStack {
+                VStack {
+                    Text(chatManager.groupChats.isEmpty ? "No Chats" : "Chats")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .center)
+
+                    HStack { // Search Bar
                         TextField("Search group chats...", text: $searchText)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding(.leading, 8)
                             .padding(.vertical, 8)
-
+                        
                         if !searchText.isEmpty {
                             Button(action: {
                                 searchText = ""
@@ -42,12 +47,7 @@ struct InboxGroupView: View {
                             .padding(.trailing, 8)
                         }
                     }
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-
-                    // Scrollable List of Group Chats
+                    
                     ScrollView {
                         VStack(spacing: 10) {
                             ForEach(filteredGroupChats) { groupChat in
@@ -108,7 +108,28 @@ struct InboxGroupView: View {
                         .padding(.horizontal)
                         .frame(width: geometry.size.width)
                     }
-                    .ignoresSafeArea(.keyboard, edges: .bottom) // Prevent keyboard from pushing content up
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
+                    .navigationTitle("Inbox")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            NavigationLink(destination: CreateGroupChatView(chatManager: chatManager)) {
+                                Image(systemName: "square.and.pencil")
+                            }
+                        }
+                    }
+                    .onAppear {
+                        chatManager.fetchGroupChats()
+                        
+                        // Automatically navigate to the selected chat if needed
+                        if let selectedGroupId = selectedGroupId {
+                            DispatchQueue.main.async {
+                                self.selectedGroupId = selectedGroupId
+                            }
+                        }
+                    }
+                    .navigationDestination(for: String.self) { groupId in
+                        GroupChatView(groupId: groupId)
+                    }
                 }
             }
         }
