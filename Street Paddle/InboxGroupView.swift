@@ -15,7 +15,7 @@ struct InboxGroupView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        GeometryReader { geometry in
             ZStack {
                 Image(.court)
                     .resizable()
@@ -23,97 +23,92 @@ struct InboxGroupView: View {
                     .aspectRatio(contentMode: .fill)
                     .ignoresSafeArea()
 
-                VStack {
-                    Text(chatManager.groupChats.isEmpty ? "No Chats" : "Chats")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .center)
+                VStack(spacing: 0) {
+                    // Fixed Search Bar
+                    HStack {
+                        TextField("Search group chats...", text: $searchText)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding(.leading, 8)
+                            .padding(.vertical, 8)
 
-                    // Search Bar
-                    TextField("Search group chats...", text: $searchText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
-                        .padding(.top, 8)
+                        if !searchText.isEmpty {
+                            Button(action: {
+                                searchText = ""
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 20)) // Increase the size of the "x" button
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.trailing, 8)
+                        }
+                    }
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
 
-                    List {
-                        ForEach(filteredGroupChats) { groupChat in
-                            NavigationLink(
-                                value: groupChat.id ?? ""
-                            ) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(displayName(for: groupChat))
-                                            .font(.headline)
+                    // Scrollable List of Group Chats
+                    ScrollView {
+                        VStack(spacing: 10) {
+                            ForEach(filteredGroupChats) { groupChat in
+                                NavigationLink(
+                                    destination: GroupChatView(groupId: groupChat.id ?? "")
+                                ) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(displayName(for: groupChat))
+                                                .font(.headline)
 
-                                        HStack {
-                                            if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
-                                                Text(latestMessage)
-                                                    .font(.subheadline)
-                                                    .foregroundColor(.gray)
-                                                    .lineLimit(1)
-                                            } else {
-                                                Text("No preview")
-                                                    .font(.subheadline)
-                                                    .foregroundColor(.gray)
-                                            }
-                                            Spacer()
-                                            if let timestamp = groupChat.latestMessageTimestamp {
-                                                Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
-                                                    .font(.caption)
-                                                    .foregroundColor(.gray)
+                                            HStack {
+                                                if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
+                                                    Text(latestMessage)
+                                                        .font(.subheadline)
+                                                        .foregroundColor(.gray)
+                                                        .lineLimit(1)
+                                                } else {
+                                                    Text("No preview")
+                                                        .font(.subheadline)
+                                                        .foregroundColor(.gray)
+                                                }
+                                                Spacer()
+                                                if let timestamp = groupChat.latestMessageTimestamp {
+                                                    Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
+                                                        .font(.caption)
+                                                        .foregroundColor(.gray)
+                                                }
                                             }
                                         }
+
+                                        Spacer()
+
+                                        // Conditionally display the badge for unread messages
+                                        if let unreadCount = groupChat.unreadCount, unreadCount > 0 {
+                                            Text("\(unreadCount)")
+                                                .font(.caption2)
+                                                .foregroundColor(.white)
+                                                .padding(6)
+                                                .background(Color.red)
+                                                .clipShape(Circle())
+                                        }
                                     }
-
-                                    Spacer()
-
-                                    // Conditionally display the badge for unread messages
-                                    if let unreadCount = groupChat.unreadCount, unreadCount > 0 {
-                                        Text("\(unreadCount)")
-                                            .font(.caption2)
-                                            .foregroundColor(.white)
-                                            .padding(6)
-                                            .background(Color.red)
-                                            .clipShape(Circle())
+                                    .padding()
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(8)
+                                }
+                                .contextMenu {
+                                    Button(action: {
+                                        // Add any additional actions here (e.g., leave group)
+                                    }) {
+                                        Text("Leave Group")
+                                        Image(systemName: "arrow.right.circle")
                                     }
                                 }
-                                .padding()
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-                            .contextMenu {
-                                Button(action: {
-                                    // Add any additional actions here (e.g., leave group)
-                                }) {
-                                    Text("Leave Group")
-                                    Image(systemName: "arrow.right.circle")
-                                }
                             }
                         }
-                        .onDelete(perform: deleteGroupChat)
+                        .padding(.horizontal)
+                        .frame(width: geometry.size.width)
                     }
-                    .navigationTitle("Inbox")
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            NavigationLink(destination: CreateGroupChatView(chatManager: chatManager)) {
-                                Image(systemName: "square.and.pencil")
-                            }
-                        }
-                    }
-                    .onAppear {
-                        chatManager.fetchGroupChats()
-                        
-                        // Automatically navigate to the selected chat if needed
-                        if let selectedGroupId = selectedGroupId {
-                            DispatchQueue.main.async {
-                                self.selectedGroupId = selectedGroupId
-                            }
-                        }
-                    }
-                    .navigationDestination(for: String.self) { groupId in
-                        GroupChatView(groupId: groupId)
-                    }
+                    .ignoresSafeArea(.keyboard, edges: .bottom) // Prevent keyboard from pushing content up
                 }
             }
         }
