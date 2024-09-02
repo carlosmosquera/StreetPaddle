@@ -127,9 +127,7 @@ struct InboxGroupView: View {
                             }
                         }
                     }
-                    .navigationDestination(for: String.self) { groupId in
-                        GroupChatView(groupId: groupId)
-                    }
+//
                 }
             }
         }
