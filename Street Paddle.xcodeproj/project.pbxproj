@@ -60,6 +60,8 @@
 		2791706D2C5A9C8700EB068B /* Shop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2791706C2C5A9C8700EB068B /* Shop.swift */; };
 		27CA22622C6AE85B00F04987 /* FriendsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27CA22612C6AE85B00F04987 /* FriendsListView.swift */; };
 		27CA22642C6AEF3B00F04987 /* ChatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27CA22632C6AEF3B00F04987 /* ChatManager.swift */; };
+		27D0CE5C2C863AB1009CD31D /* TournamentDrawView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27D0CE5B2C863AB1009CD31D /* TournamentDrawView.swift */; };
+		27D0CE5F2C863F07009CD31D /* TournamentSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27D0CE5E2C863F07009CD31D /* TournamentSetupView.swift */; };
 		27DBDCD52C76FBB80078580B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DBDCD42C76FBB80078580B /* Models.swift */; };
 /* End PBXBuildFile section */
 
@@ -86,6 +88,8 @@
 		2791706C2C5A9C8700EB068B /* Shop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shop.swift; sourceTree = "<group>"; };
 		27CA22612C6AE85B00F04987 /* FriendsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsListView.swift; sourceTree = "<group>"; };
 		27CA22632C6AEF3B00F04987 /* ChatManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatManager.swift; sourceTree = "<group>"; };
+		27D0CE5B2C863AB1009CD31D /* TournamentDrawView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TournamentDrawView.swift; sourceTree = "<group>"; };
+		27D0CE5E2C863F07009CD31D /* TournamentSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TournamentSetupView.swift; sourceTree = "<group>"; };
 		27DBDCD42C76FBB80078580B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -182,6 +186,8 @@
 				2785F6E12C61CC800075C211 /* zz_old */,
 				2754956F2C7251B30025669C /* GameView.swift */,
 				27DBDCD42C76FBB80078580B /* Models.swift */,
+				27D0CE5B2C863AB1009CD31D /* TournamentDrawView.swift */,
+				27D0CE5E2C863F07009CD31D /* TournamentSetupView.swift */,
 			);
 			path = "Street Paddle";
 			sourceTree = "<group>";
@@ -313,8 +319,10 @@
 				2791706B2C5A9C3100EB068B /* PrivateMessagesView.swift in Sources */,
 				271E116E2C65D68500CF389E /* CreateGroupChatView.swift in Sources */,
 				271E11722C65DB5500CF389E /* InboxGroupView.swift in Sources */,
+				27D0CE5F2C863F07009CD31D /* TournamentSetupView.swift in Sources */,
 				279170632C5A9BA400EB068B /* MainView.swift in Sources */,
 				279170652C5A9BBF00EB068B /* LoginView.swift in Sources */,
+				27D0CE5C2C863AB1009CD31D /* TournamentDrawView.swift in Sources */,
 				276E4D742C5D47D800783B6D /* TournamentsView.swift in Sources */,
 				275495702C7251B30025669C /* GameView.swift in Sources */,
 				27CA22622C6AE85B00F04987 /* FriendsListView.swift in Sources */,

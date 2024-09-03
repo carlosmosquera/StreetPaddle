@@ -83,6 +83,32 @@ struct MainView: View {
                         .background(Color.cyan)
                         .cornerRadius(15.0)
                     }
+                    
+                    NavigationLink(destination: TournamentSetupView()) {
+                        HStack {
+                            Text("⚙️")
+                            Text("Tournament Setup")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(width: 200.0, height: 45.0)
+                        .background(Color.cyan)
+                        .cornerRadius(15.0)
+                    }
+                    
+                    NavigationLink(destination: TournamentDrawView()) {
+                        HStack {
+                            Text("🥇")
+                            Text("Tournaments")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(width: 200.0, height: 45.0)
+                        .background(Color.cyan)
+                        .cornerRadius(15.0)
+                    }
 
                     VStack(spacing: 60) {
                         NavigationLink(destination: AvailabilityCheckInView()) {
