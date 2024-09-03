@@ -76,6 +76,8 @@ struct CategorySelectionView: View {
     }
 }
 
+
+
 struct DrawDetailView: View {
     var tournamentName: String
     var categoryName: String
@@ -101,7 +103,6 @@ struct DrawDetailView: View {
         }
     }
 
-
     var body: some View {
         VStack {
             Text("\(tournamentName) - \(categoryName)")
@@ -119,10 +120,12 @@ struct DrawDetailView: View {
                             HStack(alignment: .center) {
                                 VStack(spacing: 16) {
                                     VStack {
-                                        TextField("Score", text: $scores[index * 2])
-                                            .font(.caption)
-                                            .frame(width: 50)
-                                            .multilineTextAlignment(.center)
+                                        if currentRound > 1 {
+                                            TextField("Score", text: $scores[index * 2])
+                                                .font(.caption)
+                                                .frame(width: 50)
+                                                .multilineTextAlignment(.center)
+                                        }
 
                                         TextField("Player \(index * 2 + 1)", text: $playerNames[index * 2])
                                             .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -130,10 +133,12 @@ struct DrawDetailView: View {
                                     }
                                     
                                     VStack {
-                                        TextField("Score", text: $scores[index * 2 + 1])
-                                            .font(.caption)
-                                            .frame(width: 50)
-                                            .multilineTextAlignment(.center)
+                                        if currentRound > 1 {
+                                            TextField("Score", text: $scores[index * 2 + 1])
+                                                .font(.caption)
+                                                .frame(width: 50)
+                                                .multilineTextAlignment(.center)
+                                        }
 
                                         TextField("Player \(index * 2 + 2)", text: $playerNames[index * 2 + 1])
                                             .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -166,16 +171,6 @@ struct DrawDetailView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .font(.title)
                         .padding()
-
-                    Button(action: saveChampion) {
-                        Text("Save Champion")
-                            .font(.headline)
-                            .padding()
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                    .padding(.top, 20)
                 }
             }
 
@@ -240,11 +235,6 @@ struct DrawDetailView: View {
         currentRound += 1
     }
 
-    private func saveChampion() {
-        // Save the champion's name (for example, to UserDefaults or Firestore)
-        UserDefaults.standard.set(championName, forKey: "\(tournamentName)_\(categoryName)_champion")
-    }
-
     private func roundTitle() -> String {
         switch playerNames.count {
         case 2:
@@ -278,5 +268,7 @@ struct LineConnectorHorizontal: Shape {
 }
 
 #Preview {
-    TournamentSetupView()
+    DrawDetailView(tournamentName: "Sample Tournament", categoryName: "Sample Category")
 }
+
+

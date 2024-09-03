@@ -93,7 +93,7 @@ struct MainView: View {
                         .foregroundColor(.white)
                         .padding()
                         .frame(width: 200.0, height: 45.0)
-                        .background(Color.cyan)
+                        .background(Color.indigo)
                         .cornerRadius(15.0)
                     }
                     
@@ -106,7 +106,7 @@ struct MainView: View {
                         .foregroundColor(.white)
                         .padding()
                         .frame(width: 200.0, height: 45.0)
-                        .background(Color.cyan)
+                        .background(Color.indigo)
                         .cornerRadius(15.0)
                     }
 
@@ -145,15 +145,15 @@ struct MainView: View {
                     .background(Color.red)
                     .cornerRadius(15.0)
                     
-                    HStack {
-                        Text("🥇")
-                        Link("Tournaments", destination: URL(string: "https://streetpaddle.co/tournaments/")!)
-                    }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(width: 200.0, height: 45.0)
-                    .background(Color.indigo)
-                    .cornerRadius(15.0)
+//                    HStack {
+//                        Text("🥇")
+//                        Link("Tournaments", destination: URL(string: "https://streetpaddle.co/tournaments/")!)
+//                    }
+//                    .font(.headline)
+//                    .foregroundColor(.white)
+//                    .frame(width: 200.0, height: 45.0)
+//                    .background(Color.indigo)
+//                    .cornerRadius(15.0)
                     
                     HStack {
                         Text("🎾")
