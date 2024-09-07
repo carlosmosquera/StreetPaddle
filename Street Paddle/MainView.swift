@@ -8,7 +8,8 @@ struct MainView: View {
     @State private var unreadMessagesCount: Int = 0
     @State private var unreadAnnouncementsCount: Int = 0
     @ObservedObject var chatManager = ChatManager() // Add this line to observe the ChatManager
-
+    @State private var isAdmin: Bool = false
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -49,12 +50,12 @@ struct MainView: View {
                         .padding(.top, 80)
                     }
                     
-                    NavigationLink(destination: InboxGroupView(chatManager: chatManager)) { // Pass the chatManager
+                    NavigationLink(destination: InboxGroupView(chatManager: chatManager)) {
                         HStack {
                             Text("💬")
                             Text("Messages")
                             
-                            if chatManager.totalUnreadCount > 0 { // Show badge only if there are unread messages
+                            if chatManager.totalUnreadCount > 0 {
                                 Text("\(chatManager.totalUnreadCount)")
                                     .font(.caption)
                                     .foregroundColor(.white)
@@ -84,17 +85,20 @@ struct MainView: View {
                         .cornerRadius(15.0)
                     }
                     
-                    NavigationLink(destination: TournamentSetupView()) {
-                        HStack {
-                            Text("⚙️")
-                            Text("Tournament Setup")
+                    // Only show Tournament Setup button for admins
+                    if isAdmin {
+                        NavigationLink(destination: TournamentSetupView()) {
+                            HStack {
+                                Text("⚙️")
+                                Text("Tournament Setup")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(width: 200.0, height: 45.0)
+                            .background(Color.indigo)
+                            .cornerRadius(15.0)
                         }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(width: 200.0, height: 45.0)
-                        .background(Color.indigo)
-                        .cornerRadius(15.0)
                     }
                     
                     NavigationLink(destination: TournamentDrawView()) {
@@ -145,16 +149,6 @@ struct MainView: View {
                     .background(Color.red)
                     .cornerRadius(15.0)
                     
-//                    HStack {
-//                        Text("🥇")
-//                        Link("Tournaments", destination: URL(string: "https://streetpaddle.co/tournaments/")!)
-//                    }
-//                    .font(.headline)
-//                    .foregroundColor(.white)
-//                    .frame(width: 200.0, height: 45.0)
-//                    .background(Color.indigo)
-//                    .cornerRadius(15.0)
-                    
                     HStack {
                         Text("🎾")
                         Link("Lessons", destination: URL(string: "https://streetpaddle.co/classes/")!)
@@ -191,8 +185,9 @@ struct MainView: View {
             }
             .onAppear {
                 fetchName()
-                chatManager.fetchGroupChats() // Fetch group chats to calculate unread messages
+                chatManager.fetchGroupChats()
                 fetchUnreadAnnouncementsCount()
+                checkIfAdmin() // Check if the user is an admin
             }
         }
     }
@@ -218,37 +213,29 @@ struct MainView: View {
         }
     }
 
+    func checkIfAdmin() {
+        guard let user = Auth.auth().currentUser else { return }
+        let allowedEmails = ["carlosmosquera.r@gmail.com", "avillaronga96@gmail.com"]
+        let db = Firestore.firestore()
+        
+        db.collection("users").document(user.uid).getDocument { document, error in
+            if let document = document, document.exists, let email = document.data()?["email"] as? String {
+                self.isAdmin = allowedEmails.contains(email)
+            }
+        }
+    }
+
     func fetchUnreadAnnouncementsCount() {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
         
-        // Use a reasonable default timestamp (Unix epoch start date)
-        let defaultTimestamp = Timestamp(date: Date(timeIntervalSince1970: 0))
-        
         db.collection("users").document(user.uid).getDocument { document, error in
-            if let error = error {
-                print("Error fetching last read timestamp: \(error.localizedDescription)")
-                return
-            }
-            
-            var lastReadTimestamp: Timestamp = defaultTimestamp
             if let document = document, document.exists {
-                lastReadTimestamp = document.get("lastReadAnnouncementsTimestamp") as? Timestamp ?? defaultTimestamp
-            }
-            
-            db.collection("publicMessages")
-                .whereField("timestamp", isGreaterThan: lastReadTimestamp)
-                .getDocuments { snapshot, error in
-                    if let error = error {
-                        print("Error fetching public messages: \(error.localizedDescription)")
-                    } else {
-                        self.unreadAnnouncementsCount = snapshot?.documents.count ?? 0
-                    }
+                let lastReadTimestamp = document.get("lastReadAnnouncementsTimestamp") as? Timestamp ?? Timestamp(date: Date(timeIntervalSince1970: 0))
+                db.collection("publicMessages").whereField("timestamp", isGreaterThan: lastReadTimestamp).getDocuments { snapshot, error in
+                    self.unreadAnnouncementsCount = snapshot?.documents.count ?? 0
                 }
+            }
         }
     }
-}
-
-#Preview {
-    MainView(isUserAuthenticated: .constant(true))
 }

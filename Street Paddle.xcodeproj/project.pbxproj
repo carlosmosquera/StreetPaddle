@@ -21,6 +21,7 @@
 		271E116E2C65D68500CF389E /* CreateGroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271E116D2C65D68500CF389E /* CreateGroupChatView.swift */; };
 		271E11702C65D69600CF389E /* GroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271E116F2C65D69600CF389E /* GroupChatView.swift */; };
 		271E11722C65DB5500CF389E /* InboxGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271E11712C65DB5500CF389E /* InboxGroupView.swift */; };
+		271F19E02C8915380027D754 /* DrawDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271F19DF2C8915380027D754 /* DrawDetailView.swift */; };
 		275495702C7251B30025669C /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2754956F2C7251B30025669C /* GameView.swift */; };
 		276E4D6E2C5B108000783B6D /* Longhaul.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 276E4D6D2C5B107F00783B6D /* Longhaul.ttf */; };
 		276E4D742C5D47D800783B6D /* TournamentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276E4D732C5D47D800783B6D /* TournamentsView.swift */; };
@@ -70,6 +71,7 @@
 		271E116D2C65D68500CF389E /* CreateGroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateGroupChatView.swift; sourceTree = "<group>"; };
 		271E116F2C65D69600CF389E /* GroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupChatView.swift; sourceTree = "<group>"; };
 		271E11712C65DB5500CF389E /* InboxGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxGroupView.swift; sourceTree = "<group>"; };
+		271F19DF2C8915380027D754 /* DrawDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawDetailView.swift; sourceTree = "<group>"; };
 		2754956F2C7251B30025669C /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		276E4D6C2C5B063B00783B6D /* Street-Paddle-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Street-Paddle-Info.plist"; sourceTree = SOURCE_ROOT; };
 		276E4D6D2C5B107F00783B6D /* Longhaul.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Longhaul.ttf; sourceTree = "<group>"; };
@@ -188,6 +190,7 @@
 				27DBDCD42C76FBB80078580B /* Models.swift */,
 				27D0CE5B2C863AB1009CD31D /* TournamentDrawView.swift */,
 				27D0CE5E2C863F07009CD31D /* TournamentSetupView.swift */,
+				271F19DF2C8915380027D754 /* DrawDetailView.swift */,
 			);
 			path = "Street Paddle";
 			sourceTree = "<group>";
@@ -313,6 +316,7 @@
 				27DBDCD52C76FBB80078580B /* Models.swift in Sources */,
 				27CA22642C6AEF3B00F04987 /* ChatManager.swift in Sources */,
 				279170692C5A9BDF00EB068B /* PublicMessagesView.swift in Sources */,
+				271F19E02C8915380027D754 /* DrawDetailView.swift in Sources */,
 				2791701B2C5A952300EB068B /* ContentView.swift in Sources */,
 				279170672C5A9BD000EB068B /* SignUpView.swift in Sources */,
 				271E11702C65D69600CF389E /* GroupChatView.swift in Sources */,

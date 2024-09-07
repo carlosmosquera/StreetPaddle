@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseFirestore
 
 struct TournamentSetupView: View {
     @State private var selectedNumberOfPlayers: Int = 4
@@ -29,10 +30,8 @@ struct TournamentSetupView: View {
                 TextField("Add Category", text: $newCategory)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
-                
-                Button(action: {
-                    addCategory()
-                }) {
+
+                Button(action: addCategory) {
                     Text("Add Category")
                         .font(.headline)
                         .padding()
@@ -42,16 +41,12 @@ struct TournamentSetupView: View {
                 }
             }
 
-            List {
-                ForEach(categories, id: \.self) { category in
-                    Text(category)
-                }
+            List(categories, id: \.self) { category in
+                Text(category)
             }
             .padding(.top, 10)
 
-            Button(action: {
-                saveTournament()
-            }) {
+            Button(action: saveTournament) {
                 Text("Save Tournament")
                     .font(.headline)
                     .padding()
@@ -76,17 +71,21 @@ struct TournamentSetupView: View {
     }
 
     private func saveTournament() {
-        // Save tournament name, number of players, and categories to UserDefaults (or other storage)
-        var tournaments = UserDefaults.standard.dictionary(forKey: "tournaments") as? [String: [String: Any]] ?? [:]
-        
-        tournaments[tournamentName] = [
+        let db = Firestore.firestore()
+        let tournamentData: [String: Any] = [
+            "tournamentName": tournamentName,
             "numberOfPlayers": selectedNumberOfPlayers,
             "categories": categories
         ]
         
-        UserDefaults.standard.set(tournaments, forKey: "tournaments")
-        showConfirmation = true
-        resetForm()
+        db.collection("tournaments").document(tournamentName).setData(tournamentData) { error in
+            if let error = error {
+                print("Error saving tournament: \(error.localizedDescription)")
+            } else {
+                showConfirmation = true
+                resetForm()
+            }
+        }
     }
 
     private func resetForm() {
