@@ -18,7 +18,6 @@ struct DrawDetailView: View {
     var body: some View {
         VStack {
             if isLoading {
-                // Show loading indicator while data is being fetched
                 ProgressView("Loading tournament data...")
             } else {
                 Text("\(tournamentName) - \(categoryName)")
@@ -57,14 +56,13 @@ struct DrawDetailView: View {
 
                     ScrollView {
                         VStack(spacing: 16) {
-                            // For round 1 and other rounds, show players with lines and scores
-                            ForEach(0..<rounds[currentRound].count / 2, id: \.self) { index in
+                            ForEach(0..<numberOfMatchupsInCurrentRound(), id: \.self) { index in
                                 HStack(alignment: .center) {
                                     VStack(spacing: 16) {
                                         VStack {
                                             if currentRound > 0 || isAdmin {
                                                 if isAdmin {
-                                                    TextField("Score", text: $scoresPerRound[currentRound][index * 2])
+                                                    TextField("Score", text: bindingScore(at: index * 2))
                                                         .font(.caption)
                                                         .frame(width: 50)
                                                         .multilineTextAlignment(.center)
@@ -77,7 +75,7 @@ struct DrawDetailView: View {
                                             }
 
                                             if isAdmin {
-                                                TextField("Player \(index * 2 + 1)", text: $rounds[currentRound][index * 2])
+                                                TextField("Player \(index * 2 + 1)", text: bindingRound(at: index * 2))
                                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                                     .frame(width: 150)
                                             } else {
@@ -89,7 +87,7 @@ struct DrawDetailView: View {
                                         VStack {
                                             if currentRound > 0 || isAdmin {
                                                 if isAdmin {
-                                                    TextField("Score", text: $scoresPerRound[currentRound][index * 2 + 1])
+                                                    TextField("Score", text: bindingScore(at: index * 2 + 1))
                                                         .font(.caption)
                                                         .frame(width: 50)
                                                         .multilineTextAlignment(.center)
@@ -102,7 +100,7 @@ struct DrawDetailView: View {
                                             }
 
                                             if isAdmin {
-                                                TextField("Player \(index * 2 + 2)", text: $rounds[currentRound][index * 2 + 1])
+                                                TextField("Player \(index * 2 + 2)", text: bindingRound(at: index * 2 + 1))
                                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                                     .frame(width: 150)
                                             } else {
@@ -174,42 +172,80 @@ struct DrawDetailView: View {
         }
         .padding()
         .onAppear {
+            resetToFirstRound()
             checkIfAdmin()
             loadDraw()
         }
     }
 
-    // Initialize an empty draw with default values if no data exists
+    // MARK: - Helper Methods
+
+    private func resetToFirstRound() {
+        currentRound = 0  // Always start from round 1
+        isChampionDeclared = false  // Ensure champion is not declared on entering
+    }
+
+    private func bindingScore(at index: Int) -> Binding<String> {
+        return Binding(
+            get: {
+                if currentRound < scoresPerRound.count && index < scoresPerRound[currentRound].count {
+                    return scoresPerRound[currentRound][index]
+                }
+                return ""
+            },
+            set: { newValue in
+                if currentRound < scoresPerRound.count && index < scoresPerRound[currentRound].count {
+                    scoresPerRound[currentRound][index] = newValue
+                }
+            }
+        )
+    }
+
+    private func bindingRound(at index: Int) -> Binding<String> {
+        return Binding(
+            get: {
+                if currentRound < rounds.count && index < rounds[currentRound].count {
+                    return rounds[currentRound][index]
+                }
+                return ""
+            },
+            set: { newValue in
+                if currentRound < rounds.count && index < rounds[currentRound].count {
+                    rounds[currentRound][index] = newValue
+                }
+            }
+        )
+    }
+
+    private func numberOfMatchupsInCurrentRound() -> Int {
+        return rounds.isEmpty ? 0 : rounds[currentRound].count / 2
+    }
+
     private func initializeEmptyDraw() {
         if rounds.isEmpty {
-            rounds = [Array(repeating: "", count: numberOfPlayers)]  // Initialize based on number of players
-            scoresPerRound = [Array(repeating: "", count: numberOfPlayers)]
+            let initialRound = Array(repeating: "", count: numberOfPlayers)
+            rounds.append(initialRound)
+            scoresPerRound.append(Array(repeating: "", count: numberOfPlayers))
         }
     }
 
-    // Check if current round is the final round
     private func isFinalRound() -> Bool {
         return rounds[currentRound].count == 2
     }
 
-    // Declare the champion and move to the champion page
     private func declareChampion() {
-        // Empty the champion fields, they should not carry over from the final round
-        championName = ""
-        championScore = ""
+        saveChampion()
         isChampionDeclared = true
     }
 
-    // Go to the previous round, including handling the champion page
     private func goToPreviousRound() {
         if isChampionDeclared {
-            isChampionDeclared = false  // Unset the champion state
+            isChampionDeclared = false
         } else if currentRound > 0 {
-            currentRound -= 1  // Go to the previous round
+            currentRound -= 1
         }
     }
 
-    // Update roundTitle method
     private func roundTitle() -> String {
         if currentRound >= 0 && currentRound < rounds.count {
             switch rounds[currentRound].count {
@@ -227,64 +263,125 @@ struct DrawDetailView: View {
     }
 
     private func advanceToNextRound() {
-        if rounds.isEmpty {
-            initializeEmptyDraw()
-        } else {
-            saveCurrentRoundData()
-            let half = rounds[currentRound].count / 2
-            rounds.append(Array(repeating: "", count: half))
-            scoresPerRound.append(Array(repeating: "", count: half))
+        // Ensure you only add a round if the user is on the last round (no new rounds exist yet)
+        guard currentRound == rounds.count - 1 else {
             currentRound += 1
+            return
         }
+
+        saveCurrentRoundData()
+        let half = rounds[currentRound].count / 2
+        let nextRound = Array(repeating: "", count: half)
+        rounds.append(nextRound)
+        scoresPerRound.append(Array(repeating: "", count: half))
+        currentRound += 1
     }
 
     private func saveChampion() {
-        // Save champion details in Firestore
         let db = Firestore.firestore()
         let championData: [String: Any] = [
             "championName": championName,
             "championScore": championScore
         ]
-        
+
         db.collection("tournaments").document(tournamentName)
             .collection("draws").document(categoryName)
             .collection("rounds").document("champion").setData(championData) { error in
-            if let error = error {
-                print("Error saving champion data: \(error.localizedDescription)")
-            } else {
-                print("Champion data saved successfully.")
+                if let error = error {
+                    print("Error saving champion data: \(error.localizedDescription)")
+                } else {
+                    print("Champion data saved successfully.")
+                }
             }
-        }
     }
 
     private func saveCurrentRoundData() {
+        guard currentRound < rounds.count else { return }
+
         let db = Firestore.firestore()
         let roundData: [String: Any] = [
             "playerNames": rounds[currentRound],
             "scores": scoresPerRound[currentRound]
         ]
-        
+
         db.collection("tournaments").document(tournamentName)
             .collection("draws").document(categoryName)
             .collection("rounds").document("round_\(currentRound)").setData(roundData) { error in
-            if let error = error {
-                print("Error saving round data: \(error.localizedDescription)")
-            } else {
-                print("Round data saved successfully.")
+                if let error = error {
+                    print("Error saving round data: \(error.localizedDescription)")
+                } else {
+                    print("Round data saved successfully.")
+                }
             }
-        }
     }
 
     private func loadDraw() {
         let db = Firestore.firestore()
-        db.collection("tournaments").document(tournamentName)
-            .getDocument { document, error in
-            if let document = document, document.exists {
-                self.numberOfPlayers = document.data()?["numberOfPlayers"] as? Int ?? 8  // Fetch number of players
-                initializeEmptyDraw()  // Initialize draw with the correct number of players
+        let tournamentRef = db.collection("tournaments").document(tournamentName)
+        let drawsRef = tournamentRef.collection("draws").document(categoryName)
+        let roundsRef = drawsRef.collection("rounds")
+
+        tournamentRef.getDocument { document, error in
+            if let error = error {
+                print("Error fetching tournament details: \(error.localizedDescription)")
                 self.isLoading = false
-            } else {
-                print("Error loading tournament: \(error?.localizedDescription ?? "")")
+                return
+            }
+
+            guard let document = document, document.exists else {
+                print("Tournament document does not exist.")
+                self.isLoading = false
+                return
+            }
+
+            self.numberOfPlayers = document.data()?["numberOfPlayers"] as? Int ?? 8
+            initializeEmptyDraw()
+
+            roundsRef.order(by: "__name__").getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching rounds: \(error.localizedDescription)")
+                    self.isLoading = false
+                    return
+                }
+
+                guard let snapshot = snapshot else {
+                    print("No rounds found.")
+                    self.isLoading = false
+                    return
+                }
+
+                var fetchedRounds: [[String]] = []
+                var fetchedScores: [[String]] = []
+                var championData: (name: String, score: String)? = nil
+
+                for document in snapshot.documents {
+                    let docID = document.documentID
+                    if docID == "champion" {
+                        let data = document.data()
+                        let name = data["championName"] as? String ?? ""
+                        let score = data["championScore"] as? String ?? ""
+                        championData = (name, score)
+                    } else if docID.starts(with: "round_") {
+                        let data = document.data()
+                        let playerNames = data["playerNames"] as? [String] ?? []
+                        let scores = data["scores"] as? [String] ?? []
+                        fetchedRounds.append(playerNames)
+                        fetchedScores.append(scores)
+                    }
+                }
+
+                if !fetchedRounds.isEmpty {
+                    self.rounds = fetchedRounds
+                    self.scoresPerRound = fetchedScores
+                    self.currentRound = 0  // Reset to round 1 when loading the draw
+                }
+
+                if let champion = championData, !champion.name.isEmpty {
+                    self.championName = champion.name
+                    self.championScore = champion.score
+                    self.isChampionDeclared = true
+                }
+
                 self.isLoading = false
             }
         }
@@ -295,12 +392,18 @@ struct DrawDetailView: View {
         let allowedEmails = ["carlosmosquera.r@gmail.com", "avillaronga96@gmail.com"]
         let db = Firestore.firestore()
         db.collection("users").document(user.uid).getDocument { document, error in
+            if let error = error {
+                print("Error fetching user data: \(error.localizedDescription)")
+                return
+            }
+
             if let document = document, document.exists, let email = document.data()?["email"] as? String {
                 self.isAdmin = allowedEmails.contains(email)
             }
         }
     }
 }
+
 
 // Line Connectors (Vertical and Horizontal)
 struct LineConnector: Shape {
