@@ -1,4 +1,3 @@
-
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
@@ -8,10 +7,12 @@ struct DrawDetailView: View {
     var categoryName: String
     @State private var rounds: [[String]] = []  // Stores player names for each round
     @State private var scoresPerRound: [[String]] = []  // Stores scores for each round
-    @State private var currentRound: Int = 0
-    @State private var championName: String = ""
+    @State private var currentRound: Int = 0  // Start from round 1
+    @State private var championName: String = ""  // Separate state for champion's name
+    @State private var championScore: String = ""  // Separate state for champion's score
     @State private var isAdmin: Bool = false
     @State private var isLoading: Bool = true  // Add a loading state to avoid premature access
+    @State private var isChampionDeclared: Bool = false  // Track if champion has been declared
 
     var body: some View {
         VStack {
@@ -23,7 +24,32 @@ struct DrawDetailView: View {
                     .font(.title)
                     .padding()
 
-                if currentRound < rounds.count {
+                if isChampionDeclared {
+                    // Champion Page with independent textfields for the champion's name and score
+                    VStack {
+                        Text("Champion")
+                            .font(.title2)
+                            .padding()
+
+                        if isAdmin {
+                            TextField("Champion Name", text: $championName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+
+                            TextField("Champion Score", text: $championScore)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+                        } else {
+                            Text("Champion: \(championName)")
+                                .font(.title)
+                                .padding()
+
+                            Text("Score: \(championScore)")
+                                .font(.title)
+                                .padding()
+                        }
+                    }
+                } else if currentRound < rounds.count {
                     Text(roundTitle())
                         .font(.title2)
                         .padding()
@@ -35,17 +61,10 @@ struct DrawDetailView: View {
                                     VStack(spacing: 16) {
                                         VStack {
                                             if currentRound > 0 {
-                                                if isAdmin {
-                                                    TextField("Score", text: $scoresPerRound[currentRound][index * 2])
-                                                        .font(.caption)
-                                                        .frame(width: 50)
-                                                        .multilineTextAlignment(.center)
-                                                } else {
-                                                    Text(scoresPerRound[currentRound][index * 2])
-                                                        .font(.caption)
-                                                        .frame(width: 50)
-                                                        .multilineTextAlignment(.center)
-                                                }
+                                                Text(scoresPerRound[currentRound][index * 2])
+                                                    .font(.caption)
+                                                    .frame(width: 50)
+                                                    .multilineTextAlignment(.center)
                                             }
 
                                             if isAdmin {
@@ -60,17 +79,10 @@ struct DrawDetailView: View {
 
                                         VStack {
                                             if currentRound > 0 {
-                                                if isAdmin {
-                                                    TextField("Score", text: $scoresPerRound[currentRound][index * 2 + 1])
-                                                        .font(.caption)
-                                                        .frame(width: 50)
-                                                        .multilineTextAlignment(.center)
-                                                } else {
-                                                    Text(scoresPerRound[currentRound][index * 2 + 1])
-                                                        .font(.caption)
-                                                        .frame(width: 50)
-                                                        .multilineTextAlignment(.center)
-                                                }
+                                                Text(scoresPerRound[currentRound][index * 2 + 1])
+                                                    .font(.caption)
+                                                    .frame(width: 50)
+                                                    .multilineTextAlignment(.center)
                                             }
 
                                             if isAdmin {
@@ -103,23 +115,10 @@ struct DrawDetailView: View {
                             }
                         }
                     }
-                } else {
-                    VStack {
-                        if isAdmin {
-                            TextField("Champion", text: $championName)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .font(.title)
-                                .padding()
-                        } else {
-                            Text(championName)
-                                .font(.title)
-                                .padding()
-                        }
-                    }
                 }
 
                 HStack {
-                    if currentRound > 0 {
+                    if currentRound > 0 || isChampionDeclared {
                         Button(action: goToPreviousRound) {
                             Text("Previous Round")
                                 .font(.headline)
@@ -133,8 +132,7 @@ struct DrawDetailView: View {
 
                     Spacer()
 
-                    // Only show the "Advance to Next Round" button if it's not the final round
-                    if !isFinalRound() && isAdmin {
+                    if !isChampionDeclared && !isFinalRound() {
                         Button(action: advanceToNextRound) {
                             Text("Advance to Next Round")
                                 .font(.headline)
@@ -144,8 +142,8 @@ struct DrawDetailView: View {
                                 .cornerRadius(10)
                         }
                         .padding(.top, 20)
-                    } else if isFinalRound() {
-                        Button(action: saveChampion) {
+                    } else if isFinalRound() && !isChampionDeclared {
+                        Button(action: declareChampion) {
                             Text("Declare Champion")
                                 .font(.headline)
                                 .padding()
@@ -179,6 +177,22 @@ struct DrawDetailView: View {
         return rounds[currentRound].count == 2
     }
 
+    // Declare the champion and move to the champion page
+    private func declareChampion() {
+        championName = rounds[currentRound][0] // The first player is the champion
+        championScore = scoresPerRound[currentRound][0]
+        isChampionDeclared = true
+    }
+
+    // Go to the previous round, including handling the champion page
+    private func goToPreviousRound() {
+        if isChampionDeclared {
+            isChampionDeclared = false  // Unset the champion state
+        } else if currentRound > 0 {
+            currentRound -= 1  // Go to the previous round
+        }
+    }
+
     // Update roundTitle method
     private func roundTitle() -> String {
         if currentRound >= 0 && currentRound < rounds.count {
@@ -197,8 +211,7 @@ struct DrawDetailView: View {
     }
 
     private func advanceToNextRound() {
-        if isAdmin && rounds.isEmpty {
-            // Initialize rounds and scores for admin if they don't exist
+        if rounds.isEmpty {
             initializeEmptyDraw()
         } else {
             saveCurrentRoundData()
@@ -243,19 +256,13 @@ struct DrawDetailView: View {
                 } else {
                     self.rounds = snapshot.documents.map { $0["playerNames"] as? [String] ?? [] }
                     self.scoresPerRound = snapshot.documents.map { $0["scores"] as? [String] ?? [] }
-                    self.currentRound = rounds.count - 1  // Set to the last round
+                    self.currentRound = 0  // Start from round 1 when loading the draw
                 }
                 self.isLoading = false  // Stop loading once data is fetched
             } else {
                 print("Error loading draw: \(error?.localizedDescription ?? "")")
                 self.isLoading = false  // Stop loading even in case of error
             }
-        }
-    }
-
-    private func goToPreviousRound() {
-        if currentRound > 0 {
-            currentRound -= 1
         }
     }
 
@@ -270,7 +277,6 @@ struct DrawDetailView: View {
         }
     }
 }
-
 
 // Line Connectors (Vertical and Horizontal)
 struct LineConnector: Shape {
