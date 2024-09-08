@@ -74,7 +74,7 @@ struct TournamentSetupView: View {
         let db = Firestore.firestore()
         let tournamentData: [String: Any] = [
             "tournamentName": tournamentName,
-            "numberOfPlayers": selectedNumberOfPlayers,
+            "numberOfPlayers": selectedNumberOfPlayers,  // Save the number of players selected
             "categories": categories
         ]
         

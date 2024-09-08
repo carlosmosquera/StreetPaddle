@@ -13,6 +13,7 @@ struct DrawDetailView: View {
     @State private var isAdmin: Bool = false
     @State private var isLoading: Bool = true  // Add a loading state to avoid premature access
     @State private var isChampionDeclared: Bool = false  // Track if champion has been declared
+    @State private var numberOfPlayers: Int = 0  // Store the number of players from tournament setup
 
     var body: some View {
         VStack {
@@ -49,22 +50,30 @@ struct DrawDetailView: View {
                                 .padding()
                         }
                     }
-                } else if currentRound < rounds.count {
+                } else {
                     Text(roundTitle())
                         .font(.title2)
                         .padding()
 
                     ScrollView {
                         VStack(spacing: 16) {
+                            // For round 1 and other rounds, show players with lines and scores
                             ForEach(0..<rounds[currentRound].count / 2, id: \.self) { index in
                                 HStack(alignment: .center) {
                                     VStack(spacing: 16) {
                                         VStack {
-                                            if currentRound > 0 {
-                                                Text(scoresPerRound[currentRound][index * 2])
-                                                    .font(.caption)
-                                                    .frame(width: 50)
-                                                    .multilineTextAlignment(.center)
+                                            if currentRound > 0 || isAdmin {
+                                                if isAdmin {
+                                                    TextField("Score", text: $scoresPerRound[currentRound][index * 2])
+                                                        .font(.caption)
+                                                        .frame(width: 50)
+                                                        .multilineTextAlignment(.center)
+                                                } else {
+                                                    Text(scoresPerRound[currentRound][index * 2])
+                                                        .font(.caption)
+                                                        .frame(width: 50)
+                                                        .multilineTextAlignment(.center)
+                                                }
                                             }
 
                                             if isAdmin {
@@ -78,11 +87,18 @@ struct DrawDetailView: View {
                                         }
 
                                         VStack {
-                                            if currentRound > 0 {
-                                                Text(scoresPerRound[currentRound][index * 2 + 1])
-                                                    .font(.caption)
-                                                    .frame(width: 50)
-                                                    .multilineTextAlignment(.center)
+                                            if currentRound > 0 || isAdmin {
+                                                if isAdmin {
+                                                    TextField("Score", text: $scoresPerRound[currentRound][index * 2 + 1])
+                                                        .font(.caption)
+                                                        .frame(width: 50)
+                                                        .multilineTextAlignment(.center)
+                                                } else {
+                                                    Text(scoresPerRound[currentRound][index * 2 + 1])
+                                                        .font(.caption)
+                                                        .frame(width: 50)
+                                                        .multilineTextAlignment(.center)
+                                                }
                                             }
 
                                             if isAdmin {
@@ -166,9 +182,8 @@ struct DrawDetailView: View {
     // Initialize an empty draw with default values if no data exists
     private func initializeEmptyDraw() {
         if rounds.isEmpty {
-            let initialPlayers = 8  // Default to 8 players in the first round
-            rounds = [Array(repeating: "", count: initialPlayers)]
-            scoresPerRound = [Array(repeating: "", count: initialPlayers)]
+            rounds = [Array(repeating: "", count: numberOfPlayers)]  // Initialize based on number of players
+            scoresPerRound = [Array(repeating: "", count: numberOfPlayers)]
         }
     }
 
@@ -179,8 +194,9 @@ struct DrawDetailView: View {
 
     // Declare the champion and move to the champion page
     private func declareChampion() {
-        championName = rounds[currentRound][0] // The first player is the champion
-        championScore = scoresPerRound[currentRound][0]
+        // Empty the champion fields, they should not carry over from the final round
+        championName = ""
+        championScore = ""
         isChampionDeclared = true
     }
 
@@ -223,8 +239,22 @@ struct DrawDetailView: View {
     }
 
     private func saveChampion() {
-        saveCurrentRoundData()  // Save final round before showing the champion
-        currentRound += 1
+        // Save champion details in Firestore
+        let db = Firestore.firestore()
+        let championData: [String: Any] = [
+            "championName": championName,
+            "championScore": championScore
+        ]
+        
+        db.collection("tournaments").document(tournamentName)
+            .collection("draws").document(categoryName)
+            .collection("rounds").document("champion").setData(championData) { error in
+            if let error = error {
+                print("Error saving champion data: \(error.localizedDescription)")
+            } else {
+                print("Champion data saved successfully.")
+            }
+        }
     }
 
     private func saveCurrentRoundData() {
@@ -248,20 +278,14 @@ struct DrawDetailView: View {
     private func loadDraw() {
         let db = Firestore.firestore()
         db.collection("tournaments").document(tournamentName)
-            .collection("draws").document(categoryName)
-            .collection("rounds").getDocuments { snapshot, error in
-            if let snapshot = snapshot {
-                if snapshot.documents.isEmpty {
-                    initializeEmptyDraw()  // Initialize an empty draw if no data exists in Firestore
-                } else {
-                    self.rounds = snapshot.documents.map { $0["playerNames"] as? [String] ?? [] }
-                    self.scoresPerRound = snapshot.documents.map { $0["scores"] as? [String] ?? [] }
-                    self.currentRound = 0  // Start from round 1 when loading the draw
-                }
-                self.isLoading = false  // Stop loading once data is fetched
+            .getDocument { document, error in
+            if let document = document, document.exists {
+                self.numberOfPlayers = document.data()?["numberOfPlayers"] as? Int ?? 8  // Fetch number of players
+                initializeEmptyDraw()  // Initialize draw with the correct number of players
+                self.isLoading = false
             } else {
-                print("Error loading draw: \(error?.localizedDescription ?? "")")
-                self.isLoading = false  // Stop loading even in case of error
+                print("Error loading tournament: \(error?.localizedDescription ?? "")")
+                self.isLoading = false
             }
         }
     }
