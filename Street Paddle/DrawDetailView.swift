@@ -163,12 +163,11 @@ struct DrawDetailView: View {
     }
 
     private func declareChampion() {
-        saveFinalRoundData()  // Save final round data
+        // Save the final round data to ensure it's properly stored before declaring the champion
+        saveFinalRoundData()
 
-        // Save independent champion data
-        championName = ""
-        championScore = ""
-        saveChampionData()  // Save champion data to Firestore
+        // Save the champion data (name and score)
+        saveChampionData()
     }
 
     private func saveChampionData() {
@@ -189,13 +188,14 @@ struct DrawDetailView: View {
             }
     }
 
+
     private func saveFinalRoundData() {
         guard currentRound < rounds.count else { return }
 
         let db = Firestore.firestore()
         let finalRoundData: [String: Any] = [
-            "playerNames": rounds[currentRound],
-            "scores": scoresPerRound[currentRound]
+            "playerNames": rounds[currentRound],  // The two final players
+            "scores": scoresPerRound[currentRound]  // Their scores
         ]
 
         db.collection("tournaments").document(tournamentName)
@@ -236,11 +236,10 @@ struct DrawDetailView: View {
     }
 
     private func advanceToNextRound() {
-        // If the current round is the final round, declare the champion
         if isFinalRound() {
-            declareChampion()
-            currentRound += 1  // Move to the champion view
-        } else {
+            saveFinalRoundData()  // Save final round data with 2 players only
+            currentRound += 1  // Move to the champion view, no need to save champion yet
+        } else if currentRound < rounds.count {
             saveCurrentRoundData()  // Save current round data before advancing
 
             // Ensure the next round has half the players
