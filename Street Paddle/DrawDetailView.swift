@@ -236,15 +236,25 @@ struct DrawDetailView: View {
     }
 
     private func advanceToNextRound() {
+        // If the current round is the final round, declare the champion
         if isFinalRound() {
-            declareChampion()  // When it's the final round, declare the champion
+            declareChampion()
             currentRound += 1  // Move to the champion view
         } else {
-            saveCurrentRoundData()
+            saveCurrentRoundData()  // Save current round data before advancing
+
+            // Ensure the next round has half the players
             let half = rounds[currentRound].count / 2
-            let nextRound = Array(repeating: "", count: half)
-            rounds.append(nextRound)
-            scoresPerRound.append(Array(repeating: "", count: half))
+            
+            // Check if the next round already exists (to prevent duplicate rounds)
+            if currentRound + 1 >= rounds.count {
+                // Create the next round only if it hasn't been created
+                let nextRound = Array(repeating: "", count: half)
+                rounds.append(nextRound)
+                scoresPerRound.append(Array(repeating: "", count: half))
+            }
+
+            // Move to the next round
             currentRound += 1
         }
     }
