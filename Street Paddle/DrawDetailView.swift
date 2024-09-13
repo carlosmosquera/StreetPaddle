@@ -7,12 +7,11 @@ struct DrawDetailView: View {
     var categoryName: String
     @State private var rounds: [[String]] = []  // Stores player names for each round
     @State private var scoresPerRound: [[String]] = []  // Stores scores for each round
-    @State private var currentRound: Int = 0  // Start from round 1
+    @State private var currentRound: Int = 0  // Always start from round 1 on load
     @State private var championName: String = ""  // Separate state for champion's name
     @State private var championScore: String = ""  // Separate state for champion's score
     @State private var isAdmin: Bool = false
-    @State private var isLoading: Bool = true  // Add a loading state to avoid premature access
-    @State private var isChampionDeclared: Bool = false  // Track if champion has been declared
+    @State private var isLoading: Bool = true  // Loading state for fetching data
     @State private var numberOfPlayers: Int = 0  // Store the number of players from tournament setup
 
     var body: some View {
@@ -24,296 +23,23 @@ struct DrawDetailView: View {
                     .font(.title)
                     .padding()
 
-                if isChampionDeclared {
-                    // Champion Page with independent textfields for the champion's name and score
-                    VStack {
-                        Text("Champion")
-                            .font(.title2)
-                            .padding()
-
-                        if isAdmin {
-                            TextField("Champion Name", text: $championName)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-
-                            TextField("Champion Score", text: $championScore)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-                        } else {
-                            Text("Champion: \(championName)")
-                                .font(.title)
-                                .padding()
-
-                            Text("Score: \(championScore)")
-                                .font(.title)
-                                .padding()
-                        }
-                    }
+                if currentRound == rounds.count {  // Show Champion view when currentRound exceeds the number of rounds
+                    championView()
                 } else {
-                    Text(roundTitle())
-                        .font(.title2)
-                        .padding()
-
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            ForEach(0..<numberOfMatchupsInCurrentRound(), id: \.self) { index in
-                                HStack(alignment: .center) {
-                                    VStack(spacing: 16) {
-                                        VStack {
-                                            if currentRound > 0 || isAdmin {
-                                                if isAdmin {
-                                                    TextField("Score", text: bindingScore(at: index * 2))
-                                                        .font(.caption)
-                                                        .frame(width: 50)
-                                                        .multilineTextAlignment(.center)
-                                                } else {
-                                                    Text(scoresPerRound[currentRound][index * 2])
-                                                        .font(.caption)
-                                                        .frame(width: 50)
-                                                        .multilineTextAlignment(.center)
-                                                }
-                                            }
-
-                                            if isAdmin {
-                                                TextField("Player \(index * 2 + 1)", text: bindingRound(at: index * 2))
-                                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                                    .frame(width: 150)
-                                            } else {
-                                                Text(rounds[currentRound][index * 2])
-                                                    .frame(width: 150)
-                                            }
-                                        }
-
-                                        VStack {
-                                            if currentRound > 0 || isAdmin {
-                                                if isAdmin {
-                                                    TextField("Score", text: bindingScore(at: index * 2 + 1))
-                                                        .font(.caption)
-                                                        .frame(width: 50)
-                                                        .multilineTextAlignment(.center)
-                                                } else {
-                                                    Text(scoresPerRound[currentRound][index * 2 + 1])
-                                                        .font(.caption)
-                                                        .frame(width: 50)
-                                                        .multilineTextAlignment(.center)
-                                                }
-                                            }
-
-                                            if isAdmin {
-                                                TextField("Player \(index * 2 + 2)", text: bindingRound(at: index * 2 + 1))
-                                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                                    .frame(width: 150)
-                                            } else {
-                                                Text(rounds[currentRound][index * 2 + 1])
-                                                    .frame(width: 150)
-                                            }
-                                        }
-                                    }
-
-                                    // Vertical and horizontal connecting lines
-                                    VStack(spacing: 16) {
-                                        LineConnector()
-                                            .stroke(lineWidth: 2)
-                                            .frame(width: 2, height: 100)
-                                            .alignmentGuide(.leading) { _ in 75 }
-                                            .offset(x: -40, y: 20)
-
-                                        LineConnectorHorizontal()
-                                            .stroke(lineWidth: 2)
-                                            .frame(width: 70, height: 2)
-                                            .alignmentGuide(.leading) { d in d[.trailing] }
-                                            .offset(x: -5, y: -50)
-                                    }
-                                    .padding(.leading, 10)
-                                }
-                            }
-                        }
-                    }
+                    roundView()  // Show rounds
                 }
 
-                HStack {
-                    if currentRound > 0 || isChampionDeclared {
-                        Button(action: goToPreviousRound) {
-                            Text("Previous Round")
-                                .font(.headline)
-                                .padding()
-                                .background(Color.gray)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        .padding(.top, 20)
-                    }
-
-                    Spacer()
-
-                    if !isChampionDeclared && !isFinalRound() {
-                        Button(action: advanceToNextRound) {
-                            Text("Advance to Next Round")
-                                .font(.headline)
-                                .padding()
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        .padding(.top, 20)
-                    } else if isFinalRound() && !isChampionDeclared {
-                        Button(action: declareChampion) {
-                            Text("Declare Champion")
-                                .font(.headline)
-                                .padding()
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        .padding(.top, 20)
-                    }
-                }
+                navigationButtons()
             }
         }
         .padding()
         .onAppear {
-            resetToFirstRound()
+            loadDraw()  // Load draw data
             checkIfAdmin()
-            loadDraw()
         }
     }
 
     // MARK: - Helper Methods
-
-    private func resetToFirstRound() {
-        currentRound = 0  // Always start from round 1
-        isChampionDeclared = false  // Ensure champion is not declared on entering
-    }
-
-    private func bindingScore(at index: Int) -> Binding<String> {
-        return Binding(
-            get: {
-                if currentRound < scoresPerRound.count && index < scoresPerRound[currentRound].count {
-                    return scoresPerRound[currentRound][index]
-                }
-                return ""
-            },
-            set: { newValue in
-                if currentRound < scoresPerRound.count && index < scoresPerRound[currentRound].count {
-                    scoresPerRound[currentRound][index] = newValue
-                }
-            }
-        )
-    }
-
-    private func bindingRound(at index: Int) -> Binding<String> {
-        return Binding(
-            get: {
-                if currentRound < rounds.count && index < rounds[currentRound].count {
-                    return rounds[currentRound][index]
-                }
-                return ""
-            },
-            set: { newValue in
-                if currentRound < rounds.count && index < rounds[currentRound].count {
-                    rounds[currentRound][index] = newValue
-                }
-            }
-        )
-    }
-
-    private func numberOfMatchupsInCurrentRound() -> Int {
-        return rounds.isEmpty ? 0 : rounds[currentRound].count / 2
-    }
-
-    private func initializeEmptyDraw() {
-        if rounds.isEmpty {
-            let initialRound = Array(repeating: "", count: numberOfPlayers)
-            rounds.append(initialRound)
-            scoresPerRound.append(Array(repeating: "", count: numberOfPlayers))
-        }
-    }
-
-    private func isFinalRound() -> Bool {
-        return rounds[currentRound].count == 2
-    }
-
-    private func declareChampion() {
-        saveChampion()
-        isChampionDeclared = true
-    }
-
-    private func goToPreviousRound() {
-        if isChampionDeclared {
-            isChampionDeclared = false
-        } else if currentRound > 0 {
-            currentRound -= 1
-        }
-    }
-
-    private func roundTitle() -> String {
-        if currentRound >= 0 && currentRound < rounds.count {
-            switch rounds[currentRound].count {
-            case 2:
-                return "Final"
-            case 4:
-                return "Semifinal"
-            case 1:
-                return "Champion"
-            default:
-                return "Tournament Draw - Round \(currentRound + 1)"
-            }
-        }
-        return "Tournament Draw"
-    }
-
-    private func advanceToNextRound() {
-        // Ensure you only add a round if the user is on the last round (no new rounds exist yet)
-        guard currentRound == rounds.count - 1 else {
-            currentRound += 1
-            return
-        }
-
-        saveCurrentRoundData()
-        let half = rounds[currentRound].count / 2
-        let nextRound = Array(repeating: "", count: half)
-        rounds.append(nextRound)
-        scoresPerRound.append(Array(repeating: "", count: half))
-        currentRound += 1
-    }
-
-    private func saveChampion() {
-        let db = Firestore.firestore()
-        let championData: [String: Any] = [
-            "championName": championName,
-            "championScore": championScore
-        ]
-
-        db.collection("tournaments").document(tournamentName)
-            .collection("draws").document(categoryName)
-            .collection("rounds").document("champion").setData(championData) { error in
-                if let error = error {
-                    print("Error saving champion data: \(error.localizedDescription)")
-                } else {
-                    print("Champion data saved successfully.")
-                }
-            }
-    }
-
-    private func saveCurrentRoundData() {
-        guard currentRound < rounds.count else { return }
-
-        let db = Firestore.firestore()
-        let roundData: [String: Any] = [
-            "playerNames": rounds[currentRound],
-            "scores": scoresPerRound[currentRound]
-        ]
-
-        db.collection("tournaments").document(tournamentName)
-            .collection("draws").document(categoryName)
-            .collection("rounds").document("round_\(currentRound)").setData(roundData) { error in
-                if let error = error {
-                    print("Error saving round data: \(error.localizedDescription)")
-                } else {
-                    print("Round data saved successfully.")
-                }
-            }
-    }
 
     private func loadDraw() {
         let db = Firestore.firestore()
@@ -370,21 +96,171 @@ struct DrawDetailView: View {
                     }
                 }
 
-                if !fetchedRounds.isEmpty {
-                    self.rounds = fetchedRounds
-                    self.scoresPerRound = fetchedScores
-                    self.currentRound = 0  // Reset to round 1 when loading the draw
-                }
+                DispatchQueue.main.async {
+                    if !fetchedRounds.isEmpty {
+                        self.rounds = fetchedRounds
+                        self.scoresPerRound = fetchedScores
+                    }
 
-                if let champion = championData, !champion.name.isEmpty {
-                    self.championName = champion.name
-                    self.championScore = champion.score
-                    self.isChampionDeclared = true
-                }
+                    if let champion = championData {
+                        self.championName = champion.name
+                        self.championScore = champion.score
+                    }
 
-                self.isLoading = false
+                    self.currentRound = 0
+                    self.isLoading = false
+                }
             }
         }
+    }
+
+    private func bindingScore(at index: Int) -> Binding<String> {
+        return Binding(
+            get: {
+                if currentRound < scoresPerRound.count && index < scoresPerRound[currentRound].count {
+                    return scoresPerRound[currentRound][index]
+                }
+                return ""
+            },
+            set: { newValue in
+                if currentRound < scoresPerRound.count && index < scoresPerRound[currentRound].count {
+                    scoresPerRound[currentRound][index] = newValue
+                }
+            }
+        )
+    }
+
+    private func bindingRound(at index: Int) -> Binding<String> {
+        return Binding(
+            get: {
+                if currentRound < rounds.count && index < rounds[currentRound].count {
+                    return rounds[currentRound][index]
+                }
+                return ""
+            },
+            set: { newValue in
+                if currentRound < rounds.count && index < rounds[currentRound].count {
+                    rounds[currentRound][index] = newValue
+                }
+            }
+        )
+    }
+
+    private func initializeEmptyDraw() {
+        if rounds.isEmpty {
+            let initialRound = Array(repeating: "", count: numberOfPlayers)
+            rounds.append(initialRound)
+            scoresPerRound.append(Array(repeating: "", count: numberOfPlayers))
+        }
+    }
+
+    private func numberOfMatchupsInCurrentRound() -> Int {
+        return rounds.isEmpty ? 0 : rounds[currentRound].count / 2
+    }
+
+    private func isFinalRound() -> Bool {
+        return rounds[currentRound].count == 2
+    }
+
+    private func declareChampion() {
+        saveFinalRoundData()  // Save final round data
+
+        // Save independent champion data
+        championName = ""
+        championScore = ""
+        saveChampionData()  // Save champion data to Firestore
+    }
+
+    private func saveChampionData() {
+        let db = Firestore.firestore()
+        let championData: [String: Any] = [
+            "championName": championName,
+            "championScore": championScore
+        ]
+
+        db.collection("tournaments").document(tournamentName)
+            .collection("draws").document(categoryName)
+            .collection("rounds").document("champion").setData(championData) { error in
+                if let error = error {
+                    print("Error saving champion data: \(error.localizedDescription)")
+                } else {
+                    print("Champion data saved successfully.")
+                }
+            }
+    }
+
+    private func saveFinalRoundData() {
+        guard currentRound < rounds.count else { return }
+
+        let db = Firestore.firestore()
+        let finalRoundData: [String: Any] = [
+            "playerNames": rounds[currentRound],
+            "scores": scoresPerRound[currentRound]
+        ]
+
+        db.collection("tournaments").document(tournamentName)
+            .collection("draws").document(categoryName)
+            .collection("rounds").document("final").setData(finalRoundData) { error in
+                if let error = error {
+                    print("Error saving final round data: \(error.localizedDescription)")
+                } else {
+                    print("Final round data saved successfully.")
+                }
+            }
+    }
+
+    private func saveCurrentRoundData() {
+        guard currentRound < rounds.count else { return }
+
+        let db = Firestore.firestore()
+        let roundData: [String: Any] = [
+            "playerNames": rounds[currentRound],
+            "scores": scoresPerRound[currentRound]
+        ]
+
+        db.collection("tournaments").document(tournamentName)
+            .collection("draws").document(categoryName)
+            .collection("rounds").document("round_\(currentRound)").setData(roundData) { error in
+                if let error = error {
+                    print("Error saving round data: \(error.localizedDescription)")
+                } else {
+                    print("Round data saved successfully.")
+                }
+            }
+    }
+
+    private func goToPreviousRound() {
+        if currentRound > 0 {
+            currentRound -= 1
+        }
+    }
+
+    private func advanceToNextRound() {
+        if isFinalRound() {
+            declareChampion()  // When it's the final round, declare the champion
+            currentRound += 1  // Move to the champion view
+        } else {
+            saveCurrentRoundData()
+            let half = rounds[currentRound].count / 2
+            let nextRound = Array(repeating: "", count: half)
+            rounds.append(nextRound)
+            scoresPerRound.append(Array(repeating: "", count: half))
+            currentRound += 1
+        }
+    }
+
+    private func roundTitle() -> String {
+        if currentRound >= 0 && currentRound < rounds.count {
+            switch rounds[currentRound].count {
+            case 2:
+                return "Final"
+            case 4:
+                return "Semifinal"
+            default:
+                return "Tournament Draw - Round \(currentRound + 1)"
+            }
+        }
+        return "Tournament Draw"
     }
 
     private func checkIfAdmin() {
@@ -399,6 +275,157 @@ struct DrawDetailView: View {
 
             if let document = document, document.exists, let email = document.data()?["email"] as? String {
                 self.isAdmin = allowedEmails.contains(email)
+            }
+        }
+    }
+
+    // MARK: - Champion View and Round View
+
+    private func championView() -> some View {
+        VStack {
+            Text("Champion")
+                .font(.title2)
+                .padding()
+
+            if isAdmin {
+                TextField("Champion Name", text: $championName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+
+                TextField("Champion Score", text: $championScore)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+
+                Button(action: saveChampionData) {
+                    Text("Save Champion")
+                        .font(.headline)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .padding(.top, 20)
+            } else {
+                Text("Champion: \(championName)")
+                    .font(.title)
+                    .padding()
+
+                Text("Score: \(championScore)")
+                    .font(.title)
+                    .padding()
+            }
+        }
+    }
+
+    private func roundView() -> some View {
+        VStack {
+            Text(roundTitle())
+                .font(.title2)
+                .padding()
+
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(0..<numberOfMatchupsInCurrentRound(), id: \.self) { index in
+                        HStack(alignment: .center) {
+                            VStack(spacing: 16) {
+                                VStack {
+                                    if currentRound > 0 || isAdmin {
+                                        if isAdmin {
+                                            TextField("Score", text: bindingScore(at: index * 2))
+                                                .font(.caption)
+                                                .frame(width: 50)
+                                                .multilineTextAlignment(.center)
+                                        } else {
+                                            Text(scoresPerRound[currentRound][index * 2])
+                                                .font(.caption)
+                                                .frame(width: 50)
+                                                .multilineTextAlignment(.center)
+                                        }
+                                    }
+
+                                    if isAdmin {
+                                        TextField("Player \(index * 2 + 1)", text: bindingRound(at: index * 2))
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .frame(width: 150)
+                                    } else {
+                                        Text(rounds[currentRound][index * 2])
+                                            .frame(width: 150)
+                                    }
+                                }
+
+                                VStack {
+                                    if currentRound > 0 || isAdmin {
+                                        if isAdmin {
+                                            TextField("Score", text: bindingScore(at: index * 2 + 1))
+                                                .font(.caption)
+                                                .frame(width: 50)
+                                                .multilineTextAlignment(.center)
+                                        } else {
+                                            Text(scoresPerRound[currentRound][index * 2 + 1])
+                                                .font(.caption)
+                                                .frame(width: 50)
+                                                .multilineTextAlignment(.center)
+                                        }
+                                    }
+
+                                    if isAdmin {
+                                        TextField("Player \(index * 2 + 2)", text: bindingRound(at: index * 2 + 1))
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .frame(width: 150)
+                                    } else {
+                                        Text(rounds[currentRound][index * 2 + 1])
+                                            .frame(width: 150)
+                                    }
+                                }
+                            }
+
+                            VStack(spacing: 16) {
+                                LineConnector()
+                                    .stroke(lineWidth: 2)
+                                    .frame(width: 2, height: 100)
+                                    .alignmentGuide(.leading) { _ in 75 }
+                                    .offset(x: -40, y: 20)
+
+                                LineConnectorHorizontal()
+                                    .stroke(lineWidth: 2)
+                                    .frame(width: 70, height: 2)
+                                    .alignmentGuide(.leading) { d in d[.trailing] }
+                                    .offset(x: -5, y: -50)
+                            }
+                            .padding(.leading, 10)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func navigationButtons() -> some View {
+        HStack {
+            if currentRound > 0 {
+                Button(action: goToPreviousRound) {
+                    Text("Previous Round")
+                        .font(.headline)
+                        .padding()
+                        .background(Color.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .padding(.top, 20)
+            }
+
+            Spacer()
+
+            if currentRound < rounds.count {  // Control navigation based on currentRound
+                Button(action: advanceToNextRound) {
+                    Text("Advance to Next Round")
+                        .font(.headline)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .padding(.top, 20)
             }
         }
     }
