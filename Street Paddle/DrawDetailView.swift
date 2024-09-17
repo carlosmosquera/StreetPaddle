@@ -79,6 +79,7 @@ struct DrawDetailView: View {
                 var fetchedRounds: [[String]] = []
                 var fetchedScores: [[String]] = []
                 var championData: (name: String, score: String)? = nil
+                var finalRoundData: (names: [String], scores: [String])? = nil
 
                 for document in snapshot.documents {
                     let docID = document.documentID
@@ -87,6 +88,12 @@ struct DrawDetailView: View {
                         let name = data["championName"] as? String ?? ""
                         let score = data["championScore"] as? String ?? ""
                         championData = (name, score)
+                    } else if docID == "final" {
+                        // Capture the final round data
+                        let data = document.data()
+                        let playerNames = data["playerNames"] as? [String] ?? []
+                        let scores = data["scores"] as? [String] ?? []
+                        finalRoundData = (playerNames, scores)
                     } else if docID.starts(with: "round_") {
                         let data = document.data()
                         let playerNames = data["playerNames"] as? [String] ?? []
@@ -102,6 +109,13 @@ struct DrawDetailView: View {
                         self.scoresPerRound = fetchedScores
                     }
 
+                    // Append final round data if present
+                    if let finalRound = finalRoundData {
+                        self.rounds.append(finalRound.names)
+                        self.scoresPerRound.append(finalRound.scores)
+                    }
+
+                    // Load champion data
                     if let champion = championData {
                         self.championName = champion.name
                         self.championScore = champion.score
@@ -190,12 +204,21 @@ struct DrawDetailView: View {
 
 
     private func saveFinalRoundData() {
-        guard currentRound < rounds.count else { return }
+        guard !rounds.isEmpty, !scoresPerRound.isEmpty else {
+            print("Error: Rounds or scores data is empty.")
+            return
+        }
 
+        guard rounds[currentRound].count == 2 else {
+            print("Error: Not the final round (2 players).")
+            return
+        }
+
+        // Proceed with saving the final round data
         let db = Firestore.firestore()
         let finalRoundData: [String: Any] = [
-            "playerNames": rounds[currentRound],  // The two final players
-            "scores": scoresPerRound[currentRound]  // Their scores
+            "playerNames": rounds[currentRound],
+            "scores": scoresPerRound[currentRound]
         ]
 
         db.collection("tournaments").document(tournamentName)
