@@ -7,6 +7,8 @@ struct TournamentSetupView: View {
     @State private var categories: [String] = []
     @State private var newCategory: String = ""
     @State private var showConfirmation: Bool = false
+    @State private var startDate: Date = Date() // Initial date
+    @State private var endDate: Date = Date() // End date
 
     var body: some View {
         VStack {
@@ -46,6 +48,12 @@ struct TournamentSetupView: View {
             }
             .padding(.top, 10)
 
+            // Date Pickers
+            DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
+                .padding()
+            DatePicker("End Date", selection: $endDate, displayedComponents: .date)
+                .padding()
+
             Button(action: saveTournament) {
                 Text("Save Tournament")
                     .font(.headline)
@@ -74,8 +82,10 @@ struct TournamentSetupView: View {
         let db = Firestore.firestore()
         let tournamentData: [String: Any] = [
             "tournamentName": tournamentName,
-            "numberOfPlayers": selectedNumberOfPlayers,  // Save the number of players selected
-            "categories": categories
+            "numberOfPlayers": selectedNumberOfPlayers,
+            "categories": categories,
+            "startDate": Timestamp(date: startDate), // Save start date
+            "endDate": Timestamp(date: endDate)      // Save end date
         ]
         
         db.collection("tournaments").document(tournamentName).setData(tournamentData) { error in
@@ -92,5 +102,7 @@ struct TournamentSetupView: View {
         tournamentName = ""
         selectedNumberOfPlayers = 4
         categories.removeAll()
+        startDate = Date()
+        endDate = Date()
     }
 }
