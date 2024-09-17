@@ -18,15 +18,35 @@ struct MainView: View {
                     .opacity(0.3)
                     .aspectRatio(contentMode: .fill)
                     .ignoresSafeArea()
-
-                VStack() {
+                
+                VStack {
+                    VStack {
+                        NavigationLink(destination: ProfileView(userId: Auth.auth().currentUser?.uid ?? "")) {
+                            Image(systemName: "person.circle")
+                                .resizable()
+                                .frame(width: 50, height: 50)
+//                                .padding(.bottom, 10)
+                        }
+                        
+                        
+                        HStack {
+                            Spacer()
+                            Button(action: logOut) {
+                                Text("Log Out")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .padding([.bottom, .top, .trailing])
+                            }
+                        }
+                    }
+                    
                     Spacer().frame(width: 0, height: 0.0, alignment: .topLeading)
-
+                    
                     Text("STREET PADDLE")
                         .frame(height: 0.0)
                         .offset(x: 0.0, y: 25.0)
                         .font(.custom("Longhaul", size: 45))
-
+                    
                     NavigationLink(destination: PublicMessagesView()) {
                         HStack {
                             Text("📢")
@@ -71,7 +91,7 @@ struct MainView: View {
                         .background(Color.orange)
                         .cornerRadius(15.0)
                     }
-
+                    
                     NavigationLink(destination: FriendsListView()) {
                         HStack {
                             Text("👫")
@@ -113,7 +133,7 @@ struct MainView: View {
                         .background(Color.indigo)
                         .cornerRadius(15.0)
                     }
-
+                    
                     VStack(spacing: 60) {
                         NavigationLink(destination: AvailabilityCheckInView()) {
                             HStack {
@@ -138,7 +158,7 @@ struct MainView: View {
                         .background(Color.blue)
                         .cornerRadius(15.0)
                     }
-
+                    
                     HStack {
                         Text("📹")
                         Link("Live Cam", destination: URL(string: "https://hdontap.com/stream/322247/venice-beach-surf-cam/")!)
@@ -159,28 +179,7 @@ struct MainView: View {
                     .background(Color.mint)
                     .cornerRadius(15.0)
                 }
-                VStack {
-                    HStack {
-                        Text(name)
-                            .font(.system(size: 26.0))
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .background(Color.clear)
-                            .contentShape(Rectangle())
-                    }
-
-                    HStack {
-                        Spacer()
-
-                        Button(action: logOut) {
-                            Text("Log Out")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding([.bottom,.top, .trailing])
-                        }
-                    }
-                    Spacer()
-                }
+                
                 .padding([.bottom, .trailing], 12.0)
             }
             .onAppear {
@@ -191,7 +190,7 @@ struct MainView: View {
             }
         }
     }
-
+    
     func logOut() {
         do {
             try Auth.auth().signOut()
@@ -200,7 +199,7 @@ struct MainView: View {
             print("Error signing out: %@", signOutError)
         }
     }
-
+    
     func fetchName() {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
@@ -212,7 +211,7 @@ struct MainView: View {
             }
         }
     }
-
+    
     func checkIfAdmin() {
         guard let user = Auth.auth().currentUser else { return }
         let allowedEmails = ["carlosmosquera.r@gmail.com", "avillaronga96@gmail.com"]
@@ -224,7 +223,7 @@ struct MainView: View {
             }
         }
     }
-
+    
     func fetchUnreadAnnouncementsCount() {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
@@ -239,3 +238,5 @@ struct MainView: View {
         }
     }
 }
+
+

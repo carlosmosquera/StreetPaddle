@@ -23,6 +23,7 @@
 		271E11722C65DB5500CF389E /* InboxGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271E11712C65DB5500CF389E /* InboxGroupView.swift */; };
 		271F19E02C8915380027D754 /* DrawDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271F19DF2C8915380027D754 /* DrawDetailView.swift */; };
 		275495702C7251B30025669C /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2754956F2C7251B30025669C /* GameView.swift */; };
+		275919E52C99E79B0067797F /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275919E42C99E79B0067797F /* ProfileView.swift */; };
 		276E4D6E2C5B108000783B6D /* Longhaul.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 276E4D6D2C5B107F00783B6D /* Longhaul.ttf */; };
 		276E4D742C5D47D800783B6D /* TournamentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276E4D732C5D47D800783B6D /* TournamentsView.swift */; };
 		279170192C5A952300EB068B /* Street_PaddleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279170182C5A952300EB068B /* Street_PaddleApp.swift */; };
@@ -73,6 +74,7 @@
 		271E11712C65DB5500CF389E /* InboxGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxGroupView.swift; sourceTree = "<group>"; };
 		271F19DF2C8915380027D754 /* DrawDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawDetailView.swift; sourceTree = "<group>"; };
 		2754956F2C7251B30025669C /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
+		275919E42C99E79B0067797F /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		276E4D6C2C5B063B00783B6D /* Street-Paddle-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Street-Paddle-Info.plist"; sourceTree = SOURCE_ROOT; };
 		276E4D6D2C5B107F00783B6D /* Longhaul.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Longhaul.ttf; sourceTree = "<group>"; };
 		276E4D732C5D47D800783B6D /* TournamentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TournamentsView.swift; sourceTree = "<group>"; };
@@ -191,6 +193,7 @@
 				27D0CE5B2C863AB1009CD31D /* TournamentDrawView.swift */,
 				27D0CE5E2C863F07009CD31D /* TournamentSetupView.swift */,
 				271F19DF2C8915380027D754 /* DrawDetailView.swift */,
+				275919E42C99E79B0067797F /* ProfileView.swift */,
 			);
 			path = "Street Paddle";
 			sourceTree = "<group>";
@@ -332,6 +335,7 @@
 				27CA22622C6AE85B00F04987 /* FriendsListView.swift in Sources */,
 				270D4A7F2C66E4790068D8BD /* AvailabilityCheckInView.swift in Sources */,
 				279170192C5A952300EB068B /* Street_PaddleApp.swift in Sources */,
+				275919E52C99E79B0067797F /* ProfileView.swift in Sources */,
 				2791706D2C5A9C8700EB068B /* Shop.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
