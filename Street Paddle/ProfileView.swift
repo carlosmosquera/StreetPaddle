@@ -10,6 +10,7 @@ struct ProfileView: View {
     @State private var playerLevel: String = ""
     @State private var location: String = ""
     @State private var isEditing: Bool = false
+    @State private var isCurrentUser: Bool = false // Track if viewing own profile
     
     @State private var profileImage: UIImage? = nil
     @State private var showImagePicker: Bool = false
@@ -40,7 +41,8 @@ struct ProfileView: View {
                     .padding()
             }
 
-            if Auth.auth().currentUser?.uid == userId {
+            // Only allow changing the profile picture if it's the current user's profile
+            if isCurrentUser {
                 Button("Change Profile Picture") {
                     showImagePicker.toggle()
                 }
@@ -52,8 +54,8 @@ struct ProfileView: View {
                     Text("Username: \(username)")
                 }
 
-                Section(header: Text("Editable Information")) {
-                    if isEditing {
+                Section(header: Text("Information")) {
+                    if isEditing && isCurrentUser { // Only allow editing if the current user is viewing their own profile
                         TextField("Relationship Status", text: $relationshipStatus)
                         TextField("Player Level", text: $playerLevel)
                         TextField("Location", text: $location)
@@ -64,7 +66,8 @@ struct ProfileView: View {
                     }
                 }
 
-                if Auth.auth().currentUser?.uid == userId {
+                // Allow editing only if viewing own profile
+                if isCurrentUser {
                     Button(isEditing ? "Save" : "Edit") {
                         if isEditing {
                             saveProfileData()
@@ -95,6 +98,11 @@ struct ProfileView: View {
                 loadImageFromUrl(url: imageUrl)
             }
         }
+
+        // Check if the current user is viewing their own profile
+        if let currentUserId = Auth.auth().currentUser?.uid {
+            isCurrentUser = (currentUserId == userId)
+        }
     }
     
     // Save profile data to Firestore
@@ -116,7 +124,10 @@ struct ProfileView: View {
     
     // Upload the image to Firebase Storage and store the URL in Firestore
     func uploadImageToStorage(image: UIImage) {
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
+        // Resize the image to a reasonable size (e.g., 1024x1024) before uploading
+        let resizedImage = image.resized(toWidth: 1024) // Resize width to 1024, maintaining aspect ratio
+        
+        guard let imageData = resizedImage.jpegData(compressionQuality: 0.8) else { return }
         
         let storageRef = Storage.storage().reference().child("profileImages/\(userId).jpg")
         let metadata = StorageMetadata()
@@ -139,7 +150,7 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     // Load the image from Firebase Storage using the URL
     func loadImageFromUrl(url: String) {
         guard !url.isEmpty else { return }
