@@ -1,14 +1,13 @@
 import SwiftUI
 import FirebaseFirestore
 
-
 struct TournamentDrawView: View {
     @State private var tournaments: [(name: String, startDate: Date, endDate: Date)] = []
     @State private var selectedTournamentName: String? = nil
     @State private var selectedCategory: String? = nil
 
     var body: some View {
-        NavigationView {
+        GeometryReader { geometry in
             VStack {
                 if let selectedTournamentName = selectedTournamentName {
                     if let selectedCategory = selectedCategory {
@@ -24,6 +23,7 @@ struct TournamentDrawView: View {
                             Text("Start Date: \(tournament.startDate, formatter: dateFormatter)")
                             Text("End Date: \(tournament.endDate, formatter: dateFormatter)")
                         }
+                        .contentShape(Rectangle()) // Makes the entire cell tappable
                         .onTapGesture {
                             self.selectedTournamentName = tournament.name
                         }
@@ -33,6 +33,7 @@ struct TournamentDrawView: View {
                     }
                 }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
     }
 
@@ -66,13 +67,16 @@ struct CategorySelectionView: View {
     @State private var categories: [String] = []
 
     var body: some View {
-        List(categories, id: \.self) { category in
-            NavigationLink(destination: DrawDetailView(tournamentName: tournamentName, categoryName: category)) {
-                Text(category)
+        GeometryReader { geometry in
+            List(categories, id: \.self) { category in
+                NavigationLink(destination: DrawDetailView(tournamentName: tournamentName, categoryName: category)) {
+                    Text(category)
+                }
             }
-        }
-        .onAppear {
-            loadCategories()
+            .onAppear {
+                loadCategories()
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
     }
 
