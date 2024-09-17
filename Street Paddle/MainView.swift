@@ -1,15 +1,17 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseStorage
 
 struct MainView: View {
     @Binding var isUserAuthenticated: Bool
     @State private var name: String = ""
     @State private var unreadMessagesCount: Int = 0
     @State private var unreadAnnouncementsCount: Int = 0
+    @State private var profileImage: UIImage? = nil
     @ObservedObject var chatManager = ChatManager() // Add this line to observe the ChatManager
     @State private var isAdmin: Bool = false
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -22,12 +24,19 @@ struct MainView: View {
                 VStack {
                     VStack {
                         NavigationLink(destination: ProfileView(userId: Auth.auth().currentUser?.uid ?? "")) {
-                            Image(systemName: "person.circle")
-                                .resizable()
-                                .frame(width: 50, height: 50)
-//                                .padding(.bottom, 10)
+                            if let profileImage = profileImage {
+                                Image(uiImage: profileImage)
+                                    .resizable()
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.gray, lineWidth: 2))
+                                    .shadow(radius: 5)
+                            } else {
+                                Image(systemName: "person.circle")
+                                    .resizable()
+                                    .frame(width: 50, height: 50)
+                            }
                         }
-                        
                         
                         HStack {
                             Spacer()
@@ -179,11 +188,11 @@ struct MainView: View {
                     .background(Color.mint)
                     .cornerRadius(15.0)
                 }
-                
                 .padding([.bottom, .trailing], 12.0)
             }
             .onAppear {
                 fetchName()
+                fetchProfileImage()
                 chatManager.fetchGroupChats()
                 fetchUnreadAnnouncementsCount()
                 checkIfAdmin() // Check if the user is an admin
@@ -208,6 +217,29 @@ struct MainView: View {
                 self.name = fetchedName
             } else {
                 print("User does not exist or failed to fetch name")
+            }
+        }
+    }
+    
+    func fetchProfileImage() {
+        guard let user = Auth.auth().currentUser else { return }
+        let db = Firestore.firestore()
+        db.collection("users").document(user.uid).getDocument { document, error in
+            if let document = document, document.exists, let data = document.data(), let imageUrl = data["profileImageUrl"] as? String {
+                loadImageFromUrl(url: imageUrl)
+            }
+        }
+    }
+
+    func loadImageFromUrl(url: String) {
+        let storageRef = Storage.storage().reference(forURL: url)
+        storageRef.getData(maxSize: 2 * 1024 * 1024) { data, error in
+            if let error = error {
+                print("Error loading image: \(error)")
+                return
+            }
+            if let data = data, let uiImage = UIImage(data: data) {
+                self.profileImage = uiImage
             }
         }
     }
@@ -238,5 +270,3 @@ struct MainView: View {
         }
     }
 }
-
-
