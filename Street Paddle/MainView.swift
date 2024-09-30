@@ -187,6 +187,7 @@ struct MainView: View {
                     .frame(width: 200.0, height: 45.0)
                     .background(Color.mint)
                     .cornerRadius(15.0)
+
                 }
                 .padding([.bottom, .trailing], 12.0)
             }
