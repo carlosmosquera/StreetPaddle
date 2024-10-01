@@ -97,6 +97,7 @@
 		27D0CE5B2C863AB1009CD31D /* TournamentDrawView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TournamentDrawView.swift; sourceTree = "<group>"; };
 		27D0CE5E2C863F07009CD31D /* TournamentSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TournamentSetupView.swift; sourceTree = "<group>"; };
 		27DBDCD42C76FBB80078580B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		27FFFE172CAC53ED0070A590 /* Street Paddle.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Street Paddle.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -171,6 +172,7 @@
 		279170172C5A952300EB068B /* Street Paddle */ = {
 			isa = PBXGroup;
 			children = (
+				27FFFE172CAC53ED0070A590 /* Street Paddle.entitlements */,
 				276E4D6C2C5B063B00783B6D /* Street-Paddle-Info.plist */,
 				279170262C5A956600EB068B /* GoogleService-Info.plist */,
 				2791701C2C5A952400EB068B /* Assets.xcassets */,
@@ -471,6 +473,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Street Paddle/Street Paddle.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Street Paddle/Preview Content\"";
@@ -506,6 +509,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Street Paddle/Street Paddle.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Street Paddle/Preview Content\"";
