@@ -22,7 +22,7 @@ class ChatManager: ObservableObject {
                 guard let documents = snapshot?.documents else { return }
 
                 var updatedGroupChats = [GroupChat]()
-                var newTotalUnreadCount = 0
+                var newTotalUnreadCount = 0  // Initialize total unread count
                 var directChatGroups: [String: GroupChat] = [:] // Store direct chats by recipient name
 
                 let dispatchGroup = DispatchGroup()
@@ -33,6 +33,9 @@ class ChatManager: ObservableObject {
                         dispatchGroup.enter()
                         self.fetchUnreadCount(for: groupChatId, userId: userId) { unreadCount in
                             groupChat?.unreadCount = unreadCount
+
+                            // Accumulate the unread counts for all chats
+                            newTotalUnreadCount += unreadCount
 
                             if let groupChat = groupChat, groupChat.members.count == 2 {
                                 let recipientName = self.getDirectChatRecipientName(for: groupChat, currentUserID: userId)
@@ -57,10 +60,12 @@ class ChatManager: ObservableObject {
                     // Add merged direct chats to the final list
                     updatedGroupChats.append(contentsOf: directChatGroups.values)
                     self.groupChats = updatedGroupChats
-                    self.totalUnreadCount = newTotalUnreadCount
+                    self.totalUnreadCount = newTotalUnreadCount  // Update total unread count
                 }
             }
     }
+
+
 
     private func getDirectChatRecipientName(for groupChat: GroupChat, currentUserID: String) -> String {
         if let recipientUsernames = groupChat.recipientUsernames,
