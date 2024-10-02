@@ -25,9 +25,11 @@ struct ProfileView: View {
                 .padding()
 
             // Profile Image Section
+            // Profile Image Section
             if let profileImage = profileImage {
                 Image(uiImage: profileImage)
                     .resizable()
+                    .scaledToFit() // Use scaledToFit to maintain aspect ratio
                     .frame(width: 150, height: 150)
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.gray, lineWidth: 4))
@@ -36,10 +38,12 @@ struct ProfileView: View {
             } else {
                 Image(systemName: "person.circle.fill")
                     .resizable()
+                    .scaledToFit() // Use scaledToFit to maintain aspect ratio
                     .frame(width: 150, height: 150)
                     .clipShape(Circle())
                     .padding()
             }
+
 
             // Only allow changing the profile picture if it's the current user's profile
             if isCurrentUser {

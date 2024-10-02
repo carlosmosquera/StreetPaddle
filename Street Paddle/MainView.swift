@@ -30,6 +30,7 @@ struct MainView: View {
                             if let profileImage = profileImage {
                                 Image(uiImage: profileImage)
                                     .resizable()
+                                    .scaledToFit() // Use scaledToFit to maintain aspect ratio
                                     .frame(width: 50, height: 50)
                                     .clipShape(Circle())
                                     .overlay(Circle().stroke(Color.gray, lineWidth: 2))

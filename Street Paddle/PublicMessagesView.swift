@@ -11,6 +11,7 @@ struct PublicMessagesView: View {
     @State private var keyboardHeight: CGFloat = 0
     @State private var showToast = false
     @State private var toastMessage = ""
+    @EnvironmentObject var notificationManager: NotificationManager // Access the NotificationManager
 
     var body: some View {
         ZStack {
@@ -22,7 +23,12 @@ struct PublicMessagesView: View {
 
             VStack {
                 headerView
-                ScrollView { messagesListView }.padding(.horizontal)
+
+                ScrollView {
+                    messagesListView
+                }
+                .padding(.horizontal)
+
                 messageInputView
             }
             .onAppear {
@@ -30,6 +36,7 @@ struct PublicMessagesView: View {
                 fetchCurrentUser()
                 fetchFriends()
                 updateLastReadTimestamp()
+                resetNotificationCount() // Reset notifications when viewing
                 subscribeToKeyboardEvents()
             }
             .onDisappear {
@@ -37,7 +44,9 @@ struct PublicMessagesView: View {
             }
             .navigationTitle("Public Messages")
 
-            if showToast { toastView }
+            if showToast {
+                toastView
+            }
         }
     }
 
@@ -216,36 +225,41 @@ struct PublicMessagesView: View {
     }
     
     func sendMessage() {
-        guard let user = Auth.auth().currentUser else { return }
-        
-        let db = Firestore.firestore()
-        db.collection("users").document(user.uid).getDocument { document, error in
-            if let error = error {
-                print("Error fetching sender information: \(error.localizedDescription)")
-                return
-            }
-            guard let document = document, document.exists, let data = document.data(), let name = data["name"] as? String, let username = data["username"] as? String else {
-                print("Error fetching sender information")
-                return
-            }
-            
-            db.collection("publicMessages").addDocument(data: [
-                "senderId": user.uid, // Store the senderId
-                "senderName": name,
-                "senderUsername": username,
-                "content": message,
-                "timestamp": Timestamp(date: Date())
-            ]) { error in
-                if let error = error {
-                    print("Error sending message: \(error.localizedDescription)")
-                } else {
-                    message = ""
-                    textEditorHeight = 60 // Reset the height after sending a message
-                }
-            }
-        }
-    }
+         guard let user = Auth.auth().currentUser else { return }
 
+         let db = Firestore.firestore()
+         db.collection("users").document(user.uid).getDocument { document, error in
+             if let error = error {
+                 print("Error fetching sender information: \(error.localizedDescription)")
+                 return
+             }
+             guard let document = document, document.exists, let data = document.data(), let name = data["name"] as? String, let username = data["username"] as? String else {
+                 print("Error fetching sender information")
+                 return
+             }
+
+             db.collection("publicMessages").addDocument(data: [
+                 "senderId": user.uid,
+                 "senderName": name,
+                 "senderUsername": username,
+                 "content": message,
+                 "timestamp": Timestamp(date: Date())
+             ]) { error in
+                 if let error = error {
+                     print("Error sending message: \(error.localizedDescription)")
+                 } else {
+                     message = ""
+                     textEditorHeight = 60
+                     resetNotificationCount() // Reset notifications on message send
+                 }
+             }
+         }
+     }
+    
+    func resetNotificationCount() {
+           notificationManager.resetPublicMessagesNotificationCount() // Implement this in your NotificationManager
+       }
+    
     func fetchCurrentUser() {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()

@@ -11,6 +11,8 @@ import UserNotifications
 
 @main
 struct Street_PaddleApp: App {
+    @StateObject private var notificationManager = NotificationManager() // Create an instance of NotificationManager
+
     
     init() {
         FirebaseApp.configure()
@@ -31,6 +33,8 @@ struct Street_PaddleApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(notificationManager) // Provide the notification manager to the environment
+
         }
     }
 }
