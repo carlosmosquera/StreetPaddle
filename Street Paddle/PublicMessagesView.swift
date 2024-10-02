@@ -6,11 +6,11 @@ struct PublicMessagesView: View {
     @State private var message = ""
     @State private var groupedMessages = [String: [PublicMessage]]()
     @State private var currentUsername: String = ""
-    @State private var friends = Set<String>() // Track friends
-    @State private var textEditorHeight: CGFloat = 60 // Initial height for the TextEditor
-    @State private var keyboardHeight: CGFloat = 0 // Track keyboard height
-    @State private var showToast = false // Track whether to show the toast message
-    @State private var toastMessage = "" // The message to show in the toast
+    @State private var friends = Set<String>()
+    @State private var textEditorHeight: CGFloat = 60
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var showToast = false
+    @State private var toastMessage = ""
 
     var body: some View {
         ZStack {
@@ -22,19 +22,14 @@ struct PublicMessagesView: View {
 
             VStack {
                 headerView
-
-                ScrollView {
-                    messagesListView
-                }
-                .padding(.horizontal)
-
+                ScrollView { messagesListView }.padding(.horizontal)
                 messageInputView
             }
             .onAppear {
                 fetchMessages()
                 fetchCurrentUser()
-                fetchFriends() // Fetch friends on appear
-                updateLastReadTimestamp() // Mark announcements as read
+                fetchFriends()
+                updateLastReadTimestamp()
                 subscribeToKeyboardEvents()
             }
             .onDisappear {
@@ -42,17 +37,18 @@ struct PublicMessagesView: View {
             }
             .navigationTitle("Public Messages")
 
-            if showToast {
-                toastView
-            }
+            if showToast { toastView }
         }
     }
 
     var headerView: some View {
-        Text("This space is meant for public communication only. Please use direct messages with the (username) provided for private responses.")
+        Text("📣 Announcements - Use Direct Messages for Private Responses.")
             .font(.subheadline)
-            .foregroundColor(.gray)
+            .foregroundColor(.white)
             .padding(.horizontal)
+            .background(Color.blue.opacity(0.8))
+            .cornerRadius(10)
+            .padding(.vertical, 10)
     }
 
     var messagesListView: some View {
@@ -74,9 +70,7 @@ struct PublicMessagesView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(5.0)
                 .frame(height: textEditorHeight)
-                .onChange(of: message) { _ in
-                    adjustTextEditorHeight()
-                }
+                .onChange(of: message) { _ in adjustTextEditorHeight() }
 
             Button(action: sendMessage) {
                 Image(systemName: "arrow.up.circle.fill")
@@ -87,18 +81,17 @@ struct PublicMessagesView: View {
                     .clipShape(Circle())
             }
             .padding(.trailing, 10)
-            .disabled(message.isEmpty) // Disable if message is empty
+            .disabled(message.isEmpty)
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 10)
-        .padding(.bottom, keyboardHeight) // Adjust for keyboard height
-        .animation(.easeOut(duration: 0.16)) // Animate the change in padding
+        .padding(.bottom, keyboardHeight)
+        .animation(.easeOut(duration: 0.16))
     }
 
     var toastView: some View {
         VStack {
             Spacer()
-
             Text(toastMessage)
                 .font(.body)
                 .padding()
@@ -109,13 +102,11 @@ struct PublicMessagesView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        withAnimation {
-                            showToast = false
-                        }
+                        withAnimation { showToast = false }
                     }
                 }
         }
-        .zIndex(1) // Ensure the toast is above other content
+        .zIndex(1)
     }
 
     func dateHeaderView(date: String) -> some View {
@@ -123,65 +114,67 @@ struct PublicMessagesView: View {
             .font(.headline)
             .foregroundColor(.white)
             .padding(.horizontal)
-            .background(Color.green)
+            .background(Color.green.opacity(0.9))
             .cornerRadius(10)
     }
 
     func messageItemView(message: PublicMessage) -> some View {
-        HStack {
-            VStack(alignment: .leading) {
-                // Wrap the sender information in a NavigationLink to User B's profile
-                NavigationLink(destination: ProfileView(userId: message.senderId)) {
-                    Text("\(message.senderName) (@\(message.senderUsername))")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                        .underline()
-                        .multilineTextAlignment(.leading)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    NavigationLink(destination: ProfileView(userId: message.senderId)) {
+                        Text("\(message.senderName) (@\(message.senderUsername))")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.blue)
+                            .underline()
+                    }
+                    Spacer()
+                    Text(message.timestamp.dateValue(), formatter: timeFormatter)
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
-
+                
+                // Announcements Styling
                 Text(message.content)
                     .font(.body)
-                    .padding(10)
-                    .background(Color.blue)
-                    .cornerRadius(10)
-                    .shadow(radius: 3)
-
-                Text(message.timestamp.dateValue(), formatter: timeFormatter)
-                    .font(.caption)
+                    .padding()
+                    .background(Color.blue.opacity(0.1)) // Lighter background for announcement
+                    .cornerRadius(12)
                     .foregroundColor(.black)
-                    .padding(.bottom, 5)
-            }
-            .padding(5)
-            .background(Color.white)
-            .cornerRadius(15)
-            .shadow(radius: 1)
 
-            // Show icon based on friend status
-            if message.senderUsername != currentUsername {
-                Button(action: {
+                // Friend Status Indicator
+                HStack {
                     if friends.contains(message.senderUsername) {
-                        // Remove friend
-                        removeFriend(username: message.senderUsername)
+                        Text("🔹 Friend").font(.caption).foregroundColor(.green) // Display if friend
                     } else {
-                        // Add friend
-                        validateAndAddFriend(username: message.senderUsername)
+                        Button(action: {
+                            validateAndAddFriend(username: message.senderUsername)
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(.blue)
+                                Text("Add Friend")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                        }
                     }
-                }) {
-                    Image(systemName: friends.contains(message.senderUsername) ? "checkmark.circle.fill" : "plus.circle.fill")
-                        .foregroundColor(.blue)
-                        .padding()
                 }
             }
+            .padding(10)
+            .background(Color.white)
+            .cornerRadius(15)
+            .shadow(color: Color.gray.opacity(0.3), radius: 2, x: 1, y: 1)
+            .frame(maxWidth: .infinity) // Make bubble wider
         }
+        .padding(.vertical, 5)
+        .background(Color.gray.opacity(0.05))
+        .cornerRadius(10)
+        .padding(.horizontal)
     }
 
-    // Other functions (fetchMessages, sendMessage, fetchCurrentUser, etc.) remain the same
 
-
-    // Other functions (fetchMessages, sendMessage, fetchCurrentUser, etc.) remain the same
-
-
-    // Function to update the last read timestamp when the view appears
     func updateLastReadTimestamp() {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
