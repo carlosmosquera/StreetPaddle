@@ -156,7 +156,7 @@ struct PublicMessagesView: View {
                 HStack {
                     if friends.contains(message.senderUsername) {
                         Text("🔹 Friend").font(.caption).foregroundColor(.green) // Display if friend
-                    } else {
+                    } else if message.senderUsername != currentUsername { // Check if not current user
                         Button(action: {
                             validateAndAddFriend(username: message.senderUsername)
                         }) {
