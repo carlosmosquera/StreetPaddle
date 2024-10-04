@@ -4,14 +4,13 @@ import FirebaseAuth
 
 struct InboxGroupView: View {
     @ObservedObject var chatManager: ChatManager
-    @State private var selectedGroupId: String? = nil
     @State private var searchText: String = ""
     @State private var userNameCache: [String: String] = [:] // Cache for user names
+    @State private var messagesListener: ListenerRegistration? // Listener for real-time message updates
     private var db = Firestore.firestore() // Firestore reference
 
-    init(chatManager: ChatManager, selectedGroupId: String? = nil) {
+    init(chatManager: ChatManager) {
         _chatManager = ObservedObject(wrappedValue: chatManager)
-        _selectedGroupId = State(initialValue: selectedGroupId)
     }
 
     var body: some View {
@@ -35,7 +34,7 @@ struct InboxGroupView: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding(.leading, 8)
                             .padding(.vertical, 8)
-                        
+
                         if !searchText.isEmpty {
                             Button(action: {
                                 searchText = ""
@@ -47,7 +46,7 @@ struct InboxGroupView: View {
                             .padding(.trailing, 8)
                         }
                     }
-                    
+
                     ScrollView {
                         VStack(spacing: 10) {
                             ForEach(filteredGroupChats) { groupChat in
@@ -117,20 +116,103 @@ struct InboxGroupView: View {
                             }
                         }
                     }
-                    .onAppear {
-                        chatManager.fetchGroupChats()
-                        
-                        // Automatically navigate to the selected chat if needed
-                        if let selectedGroupId = selectedGroupId {
-                            DispatchQueue.main.async {
-                                self.selectedGroupId = selectedGroupId
-                            }
-                        }
-                    }
-//
                 }
             }
         }
+        .onAppear {
+            listenForGroupChats()   // Real-time listener for group chats
+            listenForUnreadMessages() // Real-time listener for unread messages
+        }
+        .onDisappear {
+            stopListening()  // Stop all listeners when the view disappears
+        }
+    }
+
+    // Real-time listener for group chats
+    func listenForGroupChats() {
+        guard let user = Auth.auth().currentUser else { return }
+        messagesListener = db.collection("groups")
+            .whereField("members", arrayContains: user.uid)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error fetching group chats: \(error.localizedDescription)")
+                    return
+                }
+
+                let groupChats = snapshot?.documents.compactMap { document -> GroupChat? in
+                    try? document.data(as: GroupChat.self)
+                } ?? []
+
+                DispatchQueue.main.async {
+                    chatManager.groupChats = groupChats
+                }
+            }
+    }
+
+    // Real-time listener for unread messages in group chats
+    func listenForUnreadMessages() {
+        guard let user = Auth.auth().currentUser else { return }
+        db.collection("groups")
+            .whereField("members", arrayContains: user.uid)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error fetching group messages: \(error.localizedDescription)")
+                    return
+                }
+
+                DispatchQueue.main.async {
+                    snapshot?.documents.forEach { document in
+                        let groupId = document.documentID
+                        self.fetchUnreadCount(for: groupId) { unreadCount in
+                            self.updateGroupUnreadCount(groupId: groupId, unreadCount: unreadCount)
+                        }
+                    }
+                }
+            }
+    }
+
+    // Fetch unread count for each group chat
+    func fetchUnreadCount(for groupChatId: String, completion: @escaping (Int) -> Void) {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        let userLastReadDocRef = db.collection("groups").document(groupChatId).collection("members").document(userId)
+
+        userLastReadDocRef.getDocument { document, error in
+            if let error = error {
+                print("Error fetching last read timestamp: \(error)")
+                completion(0)
+                return
+            }
+
+            guard let document = document, let lastReadTimestamp = document.data()?["lastReadTimestamp"] as? Timestamp else {
+                completion(0)
+                return
+            }
+
+            db.collection("groups").document(groupChatId).collection("groupmessages")
+                .whereField("timestamp", isGreaterThan: lastReadTimestamp)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        print("Error fetching unread messages: \(error)")
+                        completion(0)
+                        return
+                    }
+
+                    let unreadCount = snapshot?.documents.count ?? 0
+                    completion(unreadCount)
+                }
+        }
+    }
+
+    // Update unread message count in the UI
+    func updateGroupUnreadCount(groupId: String, unreadCount: Int) {
+        if let index = chatManager.groupChats.firstIndex(where: { $0.id == groupId }) {
+            chatManager.groupChats[index].unreadCount = unreadCount
+        }
+    }
+
+    // Stop all listeners when the view disappears
+    func stopListening() {
+        messagesListener?.remove()
     }
 
     // Computed property to filter group chats based on the search text
@@ -144,6 +226,7 @@ struct InboxGroupView: View {
         }
     }
 
+    // Function to display group chat names
     func displayName(for groupChat: GroupChat) -> String {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return "Chat" }
 
@@ -174,6 +257,7 @@ struct InboxGroupView: View {
         }
     }
 
+    // Fetch the user's name by their username
     func fetchUserNameByUsername(_ username: String, completion: @escaping (String?) -> Void) {
         db.collection("users").whereField("username", isEqualTo: username).getDocuments { querySnapshot, error in
             if let error = error {
@@ -187,6 +271,7 @@ struct InboxGroupView: View {
         }
     }
 
+    // Function to leave a group chat
     func leaveGroupChat(groupChat: GroupChat) {
         guard let userId = Auth.auth().currentUser?.uid, let groupId = groupChat.id else { return }
 
