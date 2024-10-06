@@ -370,7 +370,11 @@ struct MainView: View {
     }
     
     func loadImageFromUrl(url: String) {
-        let storageRef = Storage.storage().reference(forURL: url)
+        guard !url.isEmpty else { return }
+        
+        // Use Storage's reference instead of forURL if it's a relative path
+        let storageRef = Storage.storage().reference().child(url) // Assuming `url` is a relative path
+        
         storageRef.getData(maxSize: 2 * 1024 * 1024) { data, error in
             if let error = error {
                 print("Error loading image: \(error)")
@@ -381,7 +385,7 @@ struct MainView: View {
             }
         }
     }
-    
+
     func checkIfAdmin() {
         guard let user = Auth.auth().currentUser else { return }
         let allowedEmails = ["carlosmosquera.r@gmail.com", "avillaronga96@gmail.com"]
