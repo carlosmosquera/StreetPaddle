@@ -374,26 +374,41 @@ struct MainView: View {
     func fetchProfileImage() {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
+        
         db.collection("users").document(user.uid).getDocument { document, error in
+            if let error = error {
+                print("Error fetching user document: \(error.localizedDescription)")
+                return
+            }
+            
             if let document = document, document.exists, let data = document.data(), let imageUrl = data["profileImageUrl"] as? String {
-                loadImageFromUrl(url: imageUrl)
+                self.loadImageFromUrl(url: imageUrl)
+            } else {
+                print("User document does not exist or imageUrl not found")
             }
         }
     }
-    
+
     func loadImageFromUrl(url: String) {
         guard !url.isEmpty else { return }
         
-        // Use Storage's reference instead of forURL if it's a relative path
-        let storageRef = Storage.storage().reference().child(url) // Assuming `url` is a relative path
-        
+        // Check if the URL is a full Firebase Storage URL or just a path
+        let storageRef: StorageReference
+        if url.starts(with: "gs://") || url.starts(with: "https://") {
+            storageRef = Storage.storage().reference(forURL: url)
+        } else {
+            storageRef = Storage.storage().reference().child(url) // Assuming it's a relative path
+        }
+
         storageRef.getData(maxSize: 2 * 1024 * 1024) { data, error in
             if let error = error {
                 print("Error loading image: \(error)")
                 return
             }
             if let data = data, let uiImage = UIImage(data: data) {
-                self.profileImage = uiImage
+                DispatchQueue.main.async {
+                    self.profileImage = uiImage
+                }
             }
         }
     }
