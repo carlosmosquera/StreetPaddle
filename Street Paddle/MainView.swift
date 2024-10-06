@@ -216,7 +216,6 @@ struct MainView: View {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
         
-        // Listen for real-time updates on group messages collection
         messagesListener = db.collection("groups")
             .whereField("members", arrayContains: user.uid)
             .addSnapshotListener { snapshot, error in
@@ -225,21 +224,29 @@ struct MainView: View {
                     return
                 }
                 
-                DispatchQueue.main.async {
+                DispatchQueue.global(qos: .background).async { // Handle updates in the background
                     var totalUnread = 0
+                    
+                    let dispatchGroup = DispatchGroup() // Ensure all unread counts are fetched before updating the badge
                     
                     snapshot?.documents.forEach { document in
                         let groupId = document.documentID
+                        dispatchGroup.enter() // Enter the group before each fetch
                         self.fetchUnreadCount(for: groupId) { unreadCount in
                             totalUnread += unreadCount
-                            self.unreadMessagesCount = totalUnread
-                            self.updateAppBadge()  // Real-time badge update
+                            dispatchGroup.leave() // Leave when done
                         }
+                    }
+                    
+                    // Wait for all fetches to finish
+                    dispatchGroup.notify(queue: .main) {
+                        self.unreadMessagesCount = totalUnread
+                        self.updateAppBadge()  // Update the badge once all counts are processed
                     }
                 }
             }
     }
-    
+
     // Fetch unread count for each group chat
     func fetchUnreadCount(for groupChatId: String, completion: @escaping (Int) -> Void) {
         guard let userId = Auth.auth().currentUser?.uid else { return }
@@ -284,7 +291,6 @@ struct MainView: View {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
         
-        // Fetch user's last read timestamp
         db.collection("users").document(user.uid).getDocument { document, error in
             if let error = error {
                 print("Error fetching user document: \(error.localizedDescription)")
@@ -294,7 +300,6 @@ struct MainView: View {
             if let document = document, document.exists {
                 let lastReadTimestamp = document.get("lastReadAnnouncementsTimestamp") as? Timestamp ?? Timestamp(date: Date(timeIntervalSince1970: 0))
                 
-                // Listen for real-time updates on publicMessages collection
                 announcementListener = db.collection("publicMessages")
                     .whereField("timestamp", isGreaterThan: lastReadTimestamp)
                     .addSnapshotListener { snapshot, error in
@@ -303,16 +308,18 @@ struct MainView: View {
                             return
                         }
                         
-                        DispatchQueue.main.async {
+                        DispatchQueue.global(qos: .background).async {
                             let unreadMessages = snapshot?.documents ?? []
-                            self.unreadAnnouncementsCount = unreadMessages.count
-                            self.updateAppBadge()  // Real-time badge update
+                            DispatchQueue.main.async {
+                                self.unreadAnnouncementsCount = unreadMessages.count
+                                self.updateAppBadge()  // Real-time badge update
+                            }
                         }
                     }
             }
         }
     }
-    
+
     // Stop listening to announcements when the view disappears
     func stopListeningForUnreadAnnouncements() {
         announcementListener?.remove()
@@ -321,9 +328,14 @@ struct MainView: View {
 
     func updateAppBadge() {
         let totalUnread = unreadMessagesCount + unreadAnnouncementsCount
-        UNUserNotificationCenter.current().setBadgeCount(totalUnread) { error in
-            if let error = error {
-                print("Error setting badge count: \(error.localizedDescription)")
+        DispatchQueue.main.async {
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                guard settings.authorizationStatus == .authorized else { return }
+                
+                // Update the badge count on the app icon
+                DispatchQueue.main.async {
+                    UIApplication.shared.applicationIconBadgeNumber = totalUnread
+                }
             }
         }
     }
