@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var relationshipStatus: String = ""
     @State private var playerLevel: String = ""
     @State private var location: String = ""
+    @State private var handedness: String = "" // New state for handedness
     @State private var isEditing: Bool = false
     @State private var isCurrentUser: Bool = false // Track if viewing own profile
     
@@ -24,7 +25,6 @@ struct ProfileView: View {
                 .font(.largeTitle)
                 .padding()
 
-            // Profile Image Section
             // Profile Image Section
             if let profileImage = profileImage {
                 Image(uiImage: profileImage)
@@ -44,7 +44,6 @@ struct ProfileView: View {
                     .padding()
             }
 
-
             // Only allow changing the profile picture if it's the current user's profile
             if isCurrentUser {
                 Button("Change Profile Picture") {
@@ -63,10 +62,16 @@ struct ProfileView: View {
                         TextField("Relationship Status", text: $relationshipStatus)
                         TextField("Player Level", text: $playerLevel)
                         TextField("Location", text: $location)
+                        Picker("Handedness", selection: $handedness) { // Picker for handedness
+                            Text("Right-handed").tag("Right-handed")
+                            Text("Left-handed").tag("Left-handed")
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
                     } else {
                         Text("Relationship Status: \(relationshipStatus)")
                         Text("Player Level: \(playerLevel)")
                         Text("Location: \(location)")
+                        Text("Handedness: \(handedness)")
                     }
                 }
 
@@ -98,6 +103,7 @@ struct ProfileView: View {
                 self.relationshipStatus = data?["relationshipStatus"] as? String ?? ""
                 self.playerLevel = data?["playerLevel"] as? String ?? ""
                 self.location = data?["location"] as? String ?? ""
+                self.handedness = data?["handedness"] as? String ?? "" // Fetch handedness
                 self.imageUrl = data?["profileImageUrl"] as? String ?? ""
                 loadImageFromUrl(url: imageUrl)
             }
@@ -118,6 +124,7 @@ struct ProfileView: View {
             "relationshipStatus": relationshipStatus,
             "playerLevel": playerLevel,
             "location": location,
+            "handedness": handedness, // Save handedness
             "profileImageUrl": imageUrl
         ], merge: true) { error in
             if let error = error {
@@ -128,7 +135,6 @@ struct ProfileView: View {
     
     // Upload the image to Firebase Storage and store the URL in Firestore
     func uploadImageToStorage(image: UIImage) {
-        // Resize the image to a reasonable size (e.g., 1024x1024) before uploading
         let resizedImage = image.resized(toWidth: 1024) // Resize width to 1024, maintaining aspect ratio
         
         guard let imageData = resizedImage.jpegData(compressionQuality: 0.8) else { return }
