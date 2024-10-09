@@ -97,9 +97,10 @@ struct GroupChatView: View {
                                 }
                                 .padding(.top, 10)
                             }
-                            .onChange(of: groupMessages) { _ in
+                            .onChange(of: groupMessages) {
                                 scrollToEnd(scrollView)
                             }
+
                             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
                                 scrollToEnd(scrollView)
                             }
@@ -117,7 +118,7 @@ struct GroupChatView: View {
                                 .background(Color.gray.opacity(0.2))
                                 .cornerRadius(5.0)
                                 .frame(height: textEditorHeight)
-                                .onChange(of: messageText) { _ in
+                                .onChange(of: messageText) {
                                     adjustTextEditorHeight()
                                 }
 
@@ -195,6 +196,10 @@ struct GroupChatView: View {
         ]) { error in
             if let error = error {
                 print("Error sending message: \(error)")
+            } else {
+                // Ensure no navigation logic is triggered here
+                self.messageText = ""
+                self.textEditorHeight = 60 // Reset the height after sending a message
             }
         }
         
@@ -207,9 +212,6 @@ struct GroupChatView: View {
                 print("Error updating latest message: \(error)")
             }
         }
-        
-        messageText = ""
-        textEditorHeight = 60 // Reset the height after sending a message
     }
 
     func fetchGroupData() {
