@@ -17,5 +17,10 @@
 		<string>processing</string>
 		<string>remote-notification</string>
 	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.mosqueracarlos.streetpaddle.refresh</string>
+		<string>com.mosqueracarlos.streetpaddle.cleanup</string>
+	</array>
 </dict>
 </plist>
