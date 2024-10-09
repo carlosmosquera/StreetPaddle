@@ -11,43 +11,62 @@ struct PublicMessagesView: View {
     @State private var keyboardHeight: CGFloat = 0
     @State private var showToast = false
     @State private var toastMessage = ""
+    @State private var newChatId: String? = nil
+    @State private var isNavigatingToChat = false
     @EnvironmentObject var notificationManager: NotificationManager // Access the NotificationManager
 
     var body: some View {
-        ZStack {
-            Image(.court)
-                .resizable()
-                .opacity(0.3)
-                .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
+        NavigationView {
+            GeometryReader { geometry in
+                ZStack {
+                    Image(.court)
+                        .resizable()
+                        .opacity(0.3)
+                        .aspectRatio(contentMode: .fill)
+                        .ignoresSafeArea()
 
-            VStack {
-                headerView
+                    VStack {
+                        headerView
 
-                ScrollView {
-                    messagesListView
+                        ScrollView {
+                            messagesListView
+                        }
+                        .padding(.horizontal)
+
+                        messageInputView
+                    }
+                    .onAppear {
+                        fetchMessages()
+                        fetchCurrentUser()
+                        fetchFriends()
+                        updateLastReadTimestamp()
+                        resetNotificationCount() // Reset notifications when viewing
+                        subscribeToKeyboardEvents()
+                    }
+                    .onDisappear {
+                        unsubscribeFromKeyboardEvents()
+                    }
+                    .navigationTitle("Public Messages")
+
+                    if showToast {
+                        toastView
+                    }
+
+                    // Conditional navigation based on GeometryReader
+                    if isNavigatingToChat, let groupId = newChatId {
+                        NavigationLink(
+                            destination: GroupChatView(groupId: groupId),
+                            isActive: $isNavigatingToChat
+                        ) {
+                            EmptyView()
+                        }
+                        .hidden()
+                    }
                 }
-                .padding(.horizontal)
-
-                messageInputView
             }
-            .onAppear {
-                fetchMessages()
-                fetchCurrentUser()
-                fetchFriends()
-                updateLastReadTimestamp()
-                resetNotificationCount() // Reset notifications when viewing
-                subscribeToKeyboardEvents()
-            }
-            .onDisappear {
-                unsubscribeFromKeyboardEvents()
-            }
-            .navigationTitle("Public Messages")
-
-            if showToast {
-                toastView
-            }
+            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 
     var headerView: some View {
@@ -79,8 +98,9 @@ struct PublicMessagesView: View {
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(5.0)
                 .frame(height: textEditorHeight)
-                .onChange(of: message) { _ in adjustTextEditorHeight() }
-
+                .onChange(of: message) {
+                    adjustTextEditorHeight()
+                }
             Button(action: sendMessage) {
                 Image(systemName: "arrow.up.circle.fill")
                     .resizable()
@@ -157,13 +177,18 @@ struct PublicMessagesView: View {
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
-                    NavigationLink(destination: ProfileView(userId: message.senderId)) {
+                    // Button to open or create group chat
+                    Button(action: {
+                        openOrCreateChat(with: message.senderUsername)
+                    }) {
                         Text("\(message.senderName) (@\(message.senderUsername))")
                             .font(.subheadline)
                             .fontWeight(.bold)
                             .foregroundColor(.blue)
                             .underline()
                     }
+                    .buttonStyle(PlainButtonStyle())
+
                     Spacer()
                     Text(message.timestamp.dateValue(), formatter: timeFormatter)
                         .font(.caption)
@@ -207,6 +232,73 @@ struct PublicMessagesView: View {
         .background(Color.gray.opacity(0.05))
         .cornerRadius(10)
         .padding(.horizontal)
+    }
+
+    func openOrCreateChat(with friendUsername: String) {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+
+        db.collection("groups")
+            .whereField("members", arrayContains: currentUserId)
+            .whereField("directChatName", isEqualTo: friendUsername)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching chats: \(error.localizedDescription)")
+                    return
+                }
+
+                if let chat = snapshot?.documents.first {
+                    // Chat with the friend's username as the group name already exists
+                    self.newChatId = chat.documentID
+                    self.isNavigatingToChat = true
+                } else {
+                    // No chat found, create a new one
+                    createNewChat(with: friendUsername)
+                }
+            }
+    }
+
+    func createNewChat(with friendUsername: String) {
+        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+
+        db.collection("users")
+            .whereField("username", isEqualTo: friendUsername)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching user: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let friendDoc = snapshot?.documents.first else {
+                    print("No user found with username \(friendUsername)")
+                    return
+                }
+
+                let friendId = friendDoc.documentID
+                let creatorUsername = Auth.auth().currentUser?.displayName ?? "Unknown"
+
+                let newChatData: [String: Any] = [
+                    "members": [currentUserId, friendId],
+                    "creatorUserID": currentUserId,
+                    "creatorUsername": creatorUsername,
+                    "recipientUsernames": [friendUsername],
+                    "createdAt": Timestamp(),
+                    "directChatName": friendUsername
+                ]
+
+                var newChatRef: DocumentReference? = nil
+                newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
+                    if let error = error {
+                        print("Error creating chat: \(error.localizedDescription)")
+                    } else {
+                        if let documentId = newChatRef?.documentID {
+                            self.newChatId = documentId
+                        }
+                        self.isNavigatingToChat = true
+                    }
+                }
+            }
     }
 
 
