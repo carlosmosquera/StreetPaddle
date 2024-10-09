@@ -333,8 +333,10 @@ struct MainView: View {
                 guard settings.authorizationStatus == .authorized else { return }
                 
                 // Update the badge count on the app icon
-                DispatchQueue.main.async {
-                    UIApplication.shared.applicationIconBadgeNumber = totalUnread
+                UNUserNotificationCenter.current().setBadgeCount(totalUnread) { error in
+                    if let error = error {
+                        print("Error updating badge count: \(error.localizedDescription)")
+                    }
                 }
             }
         }
