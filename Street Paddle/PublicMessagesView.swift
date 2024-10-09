@@ -129,29 +129,32 @@ struct PublicMessagesView: View {
 
     func messageItemView(message: PublicMessage) -> some View {
         HStack(alignment: .top) {
-            // Display the profile image if available
-            if let profileImageUrl = message.profileImageUrl, let url = URL(string: profileImageUrl) {
-                AsyncImage(url: url) { image in
-                    image
+            // Profile image navigation link
+            NavigationLink(destination: ProfileView(userId: message.senderId)) {
+                // Display the profile image if available
+                if let profileImageUrl = message.profileImageUrl, let url = URL(string: profileImageUrl) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.gray, lineWidth: 1))
+                    } placeholder: {
+                        ProgressView()
+                            .frame(width: 40, height: 40)
+                    }
+                } else {
+                    // Default icon if no profile image is available
+                    Image(systemName: "person.circle.fill")
                         .resizable()
                         .scaledToFill()
                         .frame(width: 40, height: 40)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.gray, lineWidth: 1))
-                } placeholder: {
-                    ProgressView()
-                        .frame(width: 40, height: 40)
+                        .foregroundColor(.gray)
                 }
-            } else {
-                // Default icon if no profile image is available
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 40, height: 40)
-                    .clipShape(Circle())
-                    .foregroundColor(.gray)
             }
-            
+
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
                     NavigationLink(destination: ProfileView(userId: message.senderId)) {
@@ -166,7 +169,7 @@ struct PublicMessagesView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
-                
+
                 // Announcements Styling
                 Text(message.content)
                     .font(.body)
@@ -174,7 +177,7 @@ struct PublicMessagesView: View {
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(12)
                     .foregroundColor(.black)
-                
+
                 // Friend Status Indicator
                 HStack {
                     if friends.contains(message.senderUsername) {
