@@ -7,76 +7,126 @@ struct FriendsListView: View {
     @State private var isNavigatingToChat = false
     @State private var newChatId: String?
     @State private var selectedFriend: String?
+    @State private var isNavigatingToProfile = false
+    @State private var selectedFriendId: String?
 
     @State private var searchText = ""
     @State private var suggestedUsers = [String]()
     @State private var isAddingFriend = false
 
     var body: some View {
-        GeometryReader { geometry in
-            VStack {
-                // Search bar for adding new friends
-                TextField("Search for users...", text: $searchText)
-                    .padding(10)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                    .onChange(of: searchText) { newValue in
-                        searchText = newValue.lowercased()
-                        searchUsers(query: searchText)
-                    }
+        NavigationView {
+            GeometryReader { geometry in
+                VStack {
+                    // Search bar for adding new friends
+                    TextField("Search for users...", text: $searchText)
+                        .padding(10)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                        .onChange(of: searchText) { newValue in
+                            searchText = newValue.lowercased()
+                            searchUsers(query: searchText)
+                        }
 
-                // List of suggested users
-                if !suggestedUsers.isEmpty {
-                    List(suggestedUsers, id: \.self) { user in
-                        Text(user)
-                            .onTapGesture {
-                                addFriend(username: user)
-                            }
-                    }
-                }
-
-                List {
-                    ForEach(friends, id: \.username) { friend in  // Use username as unique identifier
-                        HStack {
-                            // Text for name and username
-                            Text("\(friend.name) (\(friend.username))")
-                                .font(.headline)
-                                .padding(.leading)
+                    // List of suggested users
+                    if !suggestedUsers.isEmpty {
+                        List(suggestedUsers, id: \.self) { user in
+                            Text(user)
                                 .onTapGesture {
+                                    addFriend(username: user)
+                                }
+                        }
+                    }
+
+                    List {
+                        ForEach(friends, id: \.username) { friend in  // Use username as unique identifier
+                            HStack {
+                                // Button for viewing profile next to the name
+                                Button(action: {
+                                    fetchFriendUserId(for: friend.username) { userId in
+                                        self.selectedFriendId = userId
+                                        self.isNavigatingToProfile = true
+                                    }
+                                }) {
+                                    Image(systemName: "person.crop.circle")
+                                        .foregroundColor(.blue)
+                                }
+                                .buttonStyle(PlainButtonStyle()) // Ensure no default button styling
+                                .padding(.trailing, 8) // Add some spacing between the icon and the name
+
+                                // Text for name and username that navigates to chat
+                                Button(action: {
                                     selectedFriend = friend.username
                                     openOrCreateChat(with: friend.username)
+                                }) {
+                                    Text("\(friend.name) (\(friend.username))")
+                                        .font(.headline)
                                 }
+                                .buttonStyle(PlainButtonStyle()) // Ensure no default button styling
 
-                            Spacer()
+                                Spacer()
 
-                            // Minus button for removing friend
-                            Button(action: {
-                                removeFriend(username: friend.username)
-                            }) {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundColor(.red)
+                                // Minus button for removing friend
+                                Button(action: {
+                                    removeFriend(username: friend.username)
+                                }) {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundColor(.red)
+                                }
+                                .buttonStyle(PlainButtonStyle()) // Ensure no default button styling
                             }
                         }
-                        .background(
-                            NavigationLink(
-                                destination: GroupChatView(groupId: newChatId ?? ""),
-                                isActive: Binding(
-                                    get: { selectedFriend == friend.username && isNavigatingToChat },
-                                    set: { if !$0 { selectedFriend = nil } }
-                                )
-                            ) {
-                                EmptyView()
-                            }
-                            .hidden()
-                        )
                     }
+                    .onAppear(perform: fetchFriends)
                 }
-                .onAppear(perform: fetchFriends)
+                .navigationTitle("Friends List")
+                .background(
+                    // NavigationLink for ProfileView
+                    NavigationLink(
+                        destination: ProfileView(userId: selectedFriendId ?? ""),
+                        isActive: $isNavigatingToProfile
+                    ) {
+                        EmptyView()
+                    }
+                    .hidden()
+                )
+                .background(
+                    // NavigationLink for GroupChatView
+                    NavigationLink(
+                        destination: GroupChatView(groupId: newChatId ?? ""),
+                        isActive: Binding(
+                            get: { isNavigatingToChat },
+                            set: { if !$0 { isNavigatingToChat = false; selectedFriend = nil } }
+                        )
+                    ) {
+                        EmptyView()
+                    }
+                    .hidden()
+                )
             }
-            .navigationTitle("Friends List")
         }
     }
+
+    // Other functions remain unchanged ...
+
+    func fetchFriendUserId(for username: String, completion: @escaping (String) -> Void) {
+        let db = Firestore.firestore()
+        db.collection("users")
+            .whereField("username", isEqualTo: username)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching user ID: \(error.localizedDescription)")
+                    return
+                }
+                guard let document = snapshot?.documents.first else {
+                    print("No user found with username \(username)")
+                    return
+                }
+                completion(document.documentID)
+            }
+    }
+
 
     func fetchFriends() {
         guard let user = Auth.auth().currentUser else { return }
@@ -160,29 +210,28 @@ struct FriendsListView: View {
     }
 
     func openOrCreateChat(with friend: String) {
-        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
+           guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+           let db = Firestore.firestore()
 
-        db.collection("groups")
-            .whereField("members", arrayContains: currentUserId)
-            .whereField("directChatName", isEqualTo: friend)
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    print("Error fetching chats: \(error.localizedDescription)")
-                    return
-                }
+           db.collection("groups")
+               .whereField("members", arrayContains: currentUserId)
+               .whereField("directChatName", isEqualTo: friend)
+               .getDocuments { snapshot, error in
+                   if let error = error {
+                       print("Error fetching chats: \(error.localizedDescription)")
+                       return
+                   }
 
-                if let chat = snapshot?.documents.first {
-                    // Chat with the friend's username as the group name already exists
-                    self.newChatId = chat.documentID
-                    self.isNavigatingToChat = true
-                } else {
-                    // No chat found, create a new one
-                    createNewChat(with: friend)
-                }
-            }
-    }
-
+                   if let chat = snapshot?.documents.first {
+                       // Chat with the friend's username as the group name already exists
+                       self.newChatId = chat.documentID
+                       self.isNavigatingToChat = true
+                   } else {
+                       // No chat found, create a new one
+                       createNewChat(with: friend)
+                   }
+               }
+       }
     func createNewChat(with friend: String) {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
