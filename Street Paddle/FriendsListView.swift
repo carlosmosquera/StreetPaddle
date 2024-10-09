@@ -3,7 +3,7 @@ import FirebaseAuth
 import FirebaseFirestore
 
 struct FriendsListView: View {
-    @State private var friends = [(name: String, username: String)]()  // Store both name and username
+    @State private var friends = [User]()  // Store both name and username
     @State private var isNavigatingToChat = false
     @State private var newChatId: String?
     @State private var selectedFriend: String?
@@ -11,7 +11,7 @@ struct FriendsListView: View {
     @State private var selectedFriendId: String?
 
     @State private var searchText = ""
-    @State private var suggestedUsers = [String]()
+    @State private var suggestedUsers = [User]()
     @State private var isAddingFriend = false
 
     var body: some View {
@@ -19,7 +19,7 @@ struct FriendsListView: View {
             GeometryReader { geometry in
                 VStack {
                     // Search bar for adding new friends
-                    TextField("Search for users...", text: $searchText)
+                    TextField("Search for users or names...", text: $searchText)
                         .padding(10)
                         .background(Color(.systemGray6))
                         .cornerRadius(8)
@@ -31,16 +31,16 @@ struct FriendsListView: View {
 
                     // List of suggested users
                     if !suggestedUsers.isEmpty {
-                        List(suggestedUsers, id: \.self) { user in
-                            Text(user)
+                        List(suggestedUsers, id: \.username) { user in
+                            Text("\(user.name) (\(user.username))")
                                 .onTapGesture {
-                                    addFriend(username: user)
+                                    addFriend(username: user.username)
                                 }
                         }
                     }
 
                     List {
-                        ForEach(friends, id: \.username) { friend in  // Use username as unique identifier
+                        ForEach(friends, id: \.username) { friend in
                             HStack {
                                 // Button for viewing profile next to the name
                                 Button(action: {
@@ -52,8 +52,8 @@ struct FriendsListView: View {
                                     Image(systemName: "person.crop.circle")
                                         .foregroundColor(.blue)
                                 }
-                                .buttonStyle(PlainButtonStyle()) // Ensure no default button styling
-                                .padding(.trailing, 8) // Add some spacing between the icon and the name
+                                .buttonStyle(PlainButtonStyle())
+                                .padding(.trailing, 8)
 
                                 // Text for name and username that navigates to chat
                                 Button(action: {
@@ -63,7 +63,7 @@ struct FriendsListView: View {
                                     Text("\(friend.name) (\(friend.username))")
                                         .font(.headline)
                                 }
-                                .buttonStyle(PlainButtonStyle()) // Ensure no default button styling
+                                .buttonStyle(PlainButtonStyle())
 
                                 Spacer()
 
@@ -74,7 +74,7 @@ struct FriendsListView: View {
                                     Image(systemName: "minus.circle.fill")
                                         .foregroundColor(.red)
                                 }
-                                .buttonStyle(PlainButtonStyle()) // Ensure no default button styling
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                     }
@@ -82,7 +82,6 @@ struct FriendsListView: View {
                 }
                 .navigationTitle("Friends List")
                 .background(
-                    // NavigationLink for ProfileView
                     NavigationLink(
                         destination: ProfileView(userId: selectedFriendId ?? ""),
                         isActive: $isNavigatingToProfile
@@ -92,7 +91,6 @@ struct FriendsListView: View {
                     .hidden()
                 )
                 .background(
-                    // NavigationLink for GroupChatView
                     NavigationLink(
                         destination: GroupChatView(groupId: newChatId ?? ""),
                         isActive: Binding(
@@ -157,7 +155,7 @@ struct FriendsListView: View {
                         self.friends = snapshot?.documents.compactMap { doc in
                             guard let name = doc.get("name") as? String,
                                   let username = doc.get("username") as? String else { return nil }
-                            return (name: name, username: username)
+                            return User(name: name, username: username)
                         } ?? []
                     }
             }
@@ -165,31 +163,55 @@ struct FriendsListView: View {
     }
 
     func searchUsers(query: String) {
-        guard !query.isEmpty else {
-            suggestedUsers = []
-            return
-        }
+           guard !query.isEmpty else {
+               suggestedUsers = []
+               return
+           }
 
-        let db = Firestore.firestore()
+           let db = Firestore.firestore()
+           let usernameQuery = db.collection("users")
+               .whereField("username", isGreaterThanOrEqualTo: query)
+               .whereField("username", isLessThanOrEqualTo: query + "\u{f8ff}")
+               .limit(to: 10)
+           
+           let nameQuery = db.collection("users")
+               .whereField("name", isGreaterThanOrEqualTo: query)
+               .whereField("name", isLessThanOrEqualTo: query + "\u{f8ff}")
+               .limit(to: 10)
 
-        db.collection("users")
-            .whereField("username", isGreaterThanOrEqualTo: query)
-            .whereField("username", isLessThanOrEqualTo: query + "\u{f8ff}")
-            .limit(to: 10)
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    print("Error searching for users: \(error.localizedDescription)")
-                    return
-                }
+           // Fetch usernames
+           usernameQuery.getDocuments { usernameSnapshot, error in
+               if let error = error {
+                   print("Error searching for users by username: \(error.localizedDescription)")
+                   return
+               }
 
-                if let documents = snapshot?.documents {
-                    self.suggestedUsers = documents.compactMap { $0.get("username") as? String }
-                    print("Suggested Users: \(self.suggestedUsers)")
-                } else {
-                    self.suggestedUsers = []
-                }
-            }
-    }
+               var users: [User] = usernameSnapshot?.documents.compactMap { doc in
+                   guard let name = doc.get("name") as? String,
+                         let username = doc.get("username") as? String else { return nil }
+                   return User(name: name, username: username)
+               } ?? []
+
+               // Fetch names
+               nameQuery.getDocuments { nameSnapshot, error in
+                   if let error = error {
+                       print("Error searching for users by name: \(error.localizedDescription)")
+                       return
+                   }
+
+                   let nameUsers: [User] = nameSnapshot?.documents.compactMap { doc in
+                       guard let name = doc.get("name") as? String,
+                             let username = doc.get("username") as? String else { return nil }
+                       return User(name: name, username: username)
+                   } ?? []
+
+                   // Combine and remove duplicates
+                   users.append(contentsOf: nameUsers)
+                   let uniqueUsers = Array(Set(users))
+                   self.suggestedUsers = uniqueUsers
+               }
+           }
+       }
 
     func addFriend(username: String) {
         guard let currentUser = Auth.auth().currentUser else { return }

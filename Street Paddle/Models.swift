@@ -70,3 +70,9 @@ struct Availability: Identifiable, Codable {
     }
 }
 
+struct User: Hashable {
+    let name: String
+    let username: String
+}
+
+
