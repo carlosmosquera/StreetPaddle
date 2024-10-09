@@ -129,6 +129,29 @@ struct PublicMessagesView: View {
 
     func messageItemView(message: PublicMessage) -> some View {
         HStack(alignment: .top) {
+            // Display the profile image if available
+            if let profileImageUrl = message.profileImageUrl, let url = URL(string: profileImageUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.gray, lineWidth: 1))
+                } placeholder: {
+                    ProgressView()
+                        .frame(width: 40, height: 40)
+                }
+            } else {
+                // Default icon if no profile image is available
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
+                    .foregroundColor(.gray)
+            }
+            
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
                     NavigationLink(destination: ProfileView(userId: message.senderId)) {
@@ -148,15 +171,15 @@ struct PublicMessagesView: View {
                 Text(message.content)
                     .font(.body)
                     .padding()
-                    .background(Color.blue.opacity(0.1)) // Lighter background for announcement
+                    .background(Color.blue.opacity(0.1))
                     .cornerRadius(12)
                     .foregroundColor(.black)
-
+                
                 // Friend Status Indicator
                 HStack {
                     if friends.contains(message.senderUsername) {
-                        Text("🔹 Friend").font(.caption).foregroundColor(.green) // Display if friend
-                    } else if message.senderUsername != currentUsername { // Check if not current user
+                        Text("🔹 Friend").font(.caption).foregroundColor(.green)
+                    } else if message.senderUsername != currentUsername {
                         Button(action: {
                             validateAndAddFriend(username: message.senderUsername)
                         }) {
@@ -175,7 +198,7 @@ struct PublicMessagesView: View {
             .background(Color.white)
             .cornerRadius(15)
             .shadow(color: Color.gray.opacity(0.3), radius: 2, x: 1, y: 1)
-            .frame(maxWidth: .infinity) // Make bubble wider
+            .frame(maxWidth: .infinity)
         }
         .padding(.vertical, 5)
         .background(Color.gray.opacity(0.05))
@@ -199,8 +222,6 @@ struct PublicMessagesView: View {
         }
     }
     
-    // Remaining functions (fetchMessages, sendMessage, fetchCurrentUser, etc.) remain the same
-    // ...
 
 
     
@@ -215,15 +236,34 @@ struct PublicMessagesView: View {
                     var messages = snapshot?.documents.compactMap { document in
                         try? document.data(as: PublicMessage.self)
                     } ?? []
-                    messages.sort { $0.timestamp.dateValue() > $1.timestamp.dateValue() }
-                    groupedMessages = Dictionary(grouping: messages, by: { message in
-                        let date = message.timestamp.dateValue()
-                        return dateFormatter.string(from: date)
-                    })
+                    
+                    // Fetch profile image URLs for each message's sender
+                    let dispatchGroup = DispatchGroup()
+                    
+                    for index in messages.indices {
+                        dispatchGroup.enter()
+                        let senderId = messages[index].senderId
+                        db.collection("users").document(senderId).getDocument { document, error in
+                            if let document = document, document.exists {
+                                let profileImageUrl = document.get("profileImageUrl") as? String
+                                messages[index].profileImageUrl = profileImageUrl
+                            }
+                            dispatchGroup.leave()
+                        }
+                    }
+                    
+                    // Once all profile images are fetched, update the groupedMessages state
+                    dispatchGroup.notify(queue: .main) {
+                        messages.sort { $0.timestamp.dateValue() > $1.timestamp.dateValue() }
+                        groupedMessages = Dictionary(grouping: messages, by: { message in
+                            let date = message.timestamp.dateValue()
+                            return dateFormatter.string(from: date)
+                        })
+                    }
                 }
             }
     }
-    
+
     func sendMessage() {
          guard let user = Auth.auth().currentUser else { return }
 

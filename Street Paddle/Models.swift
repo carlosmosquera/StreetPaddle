@@ -16,6 +16,7 @@ struct PublicMessage: Identifiable, Codable {
     var senderUsername: String // Username of the sender
     var content: String // Message content
     var timestamp: Timestamp // Time when the message was posted
+    var profileImageUrl: String? // Add this field for profile image URL
 
     // You can add any other relevant fields here
 }
