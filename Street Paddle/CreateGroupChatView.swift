@@ -21,10 +21,11 @@ struct CreateGroupChatView: View {
                 .padding(.horizontal, 20)
                 .autocapitalization(.none) // Disable capitalization
                 .disableAutocorrection(true) // Disable autocorrection
-                .onChange(of: usernames) { newValue in
+                .onChange(of: usernames) { oldValue, newValue in
                     usernames = newValue.lowercased() // Force lowercase
                     fetchUserSuggestions(query: newValue)
                 }
+
 
             // List of suggested users
             if !suggestedUsers.isEmpty {

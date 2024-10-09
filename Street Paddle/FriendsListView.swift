@@ -15,7 +15,7 @@ struct FriendsListView: View {
     @State private var isAddingFriend = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             GeometryReader { geometry in
                 VStack {
                     // Search bar for adding new friends
@@ -24,9 +24,9 @@ struct FriendsListView: View {
                         .background(Color(.systemGray6))
                         .cornerRadius(8)
                         .padding(.horizontal)
-                        .onChange(of: searchText) { newValue in
+                        .onChange(of: searchText) { oldValue, newValue in
                             searchText = newValue.lowercased()
-                            searchUsers(query: searchText)
+                            searchUsers(query: newValue)
                         }
 
                     // List of suggested users
@@ -81,27 +81,16 @@ struct FriendsListView: View {
                     .onAppear(perform: fetchFriends)
                 }
                 .navigationTitle("Friends List")
-                .background(
-                    NavigationLink(
-                        destination: ProfileView(userId: selectedFriendId ?? ""),
-                        isActive: $isNavigatingToProfile
-                    ) {
-                        EmptyView()
+                .navigationDestination(isPresented: $isNavigatingToProfile) {
+                    if let userId = selectedFriendId {
+                        ProfileView(userId: userId)
                     }
-                    .hidden()
-                )
-                .background(
-                    NavigationLink(
-                        destination: GroupChatView(groupId: newChatId ?? ""),
-                        isActive: Binding(
-                            get: { isNavigatingToChat },
-                            set: { if !$0 { isNavigatingToChat = false; selectedFriend = nil } }
-                        )
-                    ) {
-                        EmptyView()
+                }
+                .navigationDestination(isPresented: $isNavigatingToChat) {
+                    if let groupId = newChatId {
+                        GroupChatView(groupId: groupId)
                     }
-                    .hidden()
-                )
+                }
             }
         }
     }

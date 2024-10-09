@@ -141,7 +141,7 @@ struct GroupChatView: View {
                         .padding(.horizontal)
                         .padding(.bottom, 10)
                         .padding(.bottom, keyboardHeight) // This ensures the input area moves up with the keyboard
-                        .animation(.easeOut(duration: 0.16))
+                        .animation(.easeOut(duration: 0.16), value: keyboardHeight)
                     }
                     .frame(width: geometry.size.width)
                     .ignoresSafeArea(.keyboard, edges: .bottom)

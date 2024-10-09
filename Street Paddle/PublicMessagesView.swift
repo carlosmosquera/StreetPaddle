@@ -16,7 +16,7 @@ struct PublicMessagesView: View {
     @EnvironmentObject var notificationManager: NotificationManager // Access the NotificationManager
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             GeometryReader { geometry in
                 ZStack {
                     Image(.court)
@@ -51,17 +51,11 @@ struct PublicMessagesView: View {
                     if showToast {
                         toastView
                     }
-
-                    // Conditional navigation based on GeometryReader
-                    if isNavigatingToChat, let groupId = newChatId {
-                        NavigationLink(
-                            destination: GroupChatView(groupId: groupId),
-                            isActive: $isNavigatingToChat
-                        ) {
-                            EmptyView()
-                        }
-                        .hidden()
-                    }
+                }
+            }
+            .navigationDestination(isPresented: $isNavigatingToChat) {
+                if let groupId = newChatId {
+                    GroupChatView(groupId: groupId)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -115,7 +109,7 @@ struct PublicMessagesView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 10)
         .padding(.bottom, keyboardHeight)
-        .animation(.easeOut(duration: 0.16))
+        .animation(.easeOut(duration: 0.16), value: keyboardHeight)
     }
 
     var toastView: some View {
