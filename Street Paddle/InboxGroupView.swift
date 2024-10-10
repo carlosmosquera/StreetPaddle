@@ -40,7 +40,7 @@ struct InboxGroupView: View {
                                 searchText = ""
                             }) {
                                 Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 20)) // Increase the size of the "x" button
+                                    .font(.system(size: 20))
                                     .foregroundColor(.gray)
                             }
                             .padding(.trailing, 8)
@@ -50,58 +50,62 @@ struct InboxGroupView: View {
                     ScrollView {
                         VStack(spacing: 10) {
                             ForEach(filteredGroupChats) { groupChat in
-                                NavigationLink(
-                                    destination: GroupChatView(groupId: groupChat.id ?? "")
-                                ) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(displayName(for: groupChat))
-                                                .font(.headline)
+                                HStack {
+                                    NavigationLink(
+                                        destination: GroupChatView(groupId: groupChat.id ?? "")
+                                    ) {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(displayName(for: groupChat))
+                                                    .font(.headline)
 
-                                            HStack {
-                                                if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
-                                                    Text(latestMessage)
-                                                        .font(.subheadline)
-                                                        .foregroundColor(.gray)
-                                                        .lineLimit(1)
-                                                } else {
-                                                    Text("No preview")
-                                                        .font(.subheadline)
-                                                        .foregroundColor(.gray)
-                                                }
-                                                Spacer()
-                                                if let timestamp = groupChat.latestMessageTimestamp {
-                                                    Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
-                                                        .font(.caption)
-                                                        .foregroundColor(.gray)
+                                                HStack {
+                                                    if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
+                                                        Text(latestMessage)
+                                                            .font(.subheadline)
+                                                            .foregroundColor(.gray)
+                                                            .lineLimit(1)
+                                                    } else {
+                                                        Text("No preview")
+                                                            .font(.subheadline)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                    Spacer()
+                                                    if let timestamp = groupChat.latestMessageTimestamp {
+                                                        Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                    }
                                                 }
                                             }
-                                        }
 
-                                        Spacer()
+                                            Spacer()
 
-                                        // Conditionally display the badge for unread messages
-                                        if let unreadCount = groupChat.unreadCount, unreadCount > 0 {
-                                            Text("\(unreadCount)")
-                                                .font(.caption2)
-                                                .foregroundColor(.white)
-                                                .padding(6)
-                                                .background(Color.red)
-                                                .clipShape(Circle())
+                                            // Conditionally display the badge for unread messages
+                                            if let unreadCount = groupChat.unreadCount, unreadCount > 0 {
+                                                Text("\(unreadCount)")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.white)
+                                                    .padding(6)
+                                                    .background(Color.red)
+                                                    .clipShape(Circle())
+                                            }
                                         }
                                     }
-                                    .padding()
-                                    .background(Color.gray.opacity(0.1))
-                                    .cornerRadius(8)
-                                }
-                                .contextMenu {
+
+                                    // Minus icon to leave the group chat
                                     Button(action: {
                                         leaveGroupChat(groupChat: groupChat)
                                     }) {
-                                        Text("Leave Group")
-                                        Image(systemName: "arrow.right.circle")
+                                        Image(systemName: "minus.circle.fill")
+                                            .foregroundColor(.red)
+                                            .font(.title2)
                                     }
+                                    .padding(.leading, 8)
                                 }
+                                .padding()
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(8)
                             }
                         }
                         .padding(.horizontal)
@@ -127,6 +131,28 @@ struct InboxGroupView: View {
             stopListening()  // Stop all listeners when the view disappears
         }
     }
+
+    // Function to leave a group chat
+    func leaveGroupChat(groupChat: GroupChat) {
+        guard let userId = Auth.auth().currentUser?.uid, let groupId = groupChat.id else { return }
+
+        // Remove the current user from the group's member list
+        db.collection("groups").document(groupId).updateData([
+            "members": FieldValue.arrayRemove([userId])
+        ]) { error in
+            if let error = error {
+                print("Error leaving group chat: \(error)")
+            } else {
+                // Optionally remove the chat from the local list
+                if let index = chatManager.groupChats.firstIndex(where: { $0.id == groupId }) {
+                    chatManager.groupChats.remove(at: index)
+                }
+            }
+        }
+    }
+
+    // Other existing functions (listenForGroupChats, fetchUnreadCount, etc.) remain unchanged
+
 
     // Real-time listener for group chats
     func listenForGroupChats() {
@@ -272,21 +298,4 @@ struct InboxGroupView: View {
     }
 
     // Function to leave a group chat
-    func leaveGroupChat(groupChat: GroupChat) {
-        guard let userId = Auth.auth().currentUser?.uid, let groupId = groupChat.id else { return }
-
-        // Remove the current user from the group's member list
-        db.collection("groups").document(groupId).updateData([
-            "members": FieldValue.arrayRemove([userId])
-        ]) { error in
-            if let error = error {
-                print("Error leaving group chat: \(error)")
-            } else {
-                // Optionally remove the chat from the local list
-                if let index = chatManager.groupChats.firstIndex(where: { $0.id == groupId }) {
-                    chatManager.groupChats.remove(at: index)
-                }
-            }
-        }
-    }
 }
