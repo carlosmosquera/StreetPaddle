@@ -7,13 +7,13 @@ struct PublicMessagesView: View {
     @State private var groupedMessages = [String: [PublicMessage]]()
     @State private var currentUsername: String = ""
     @State private var friends = Set<String>()
-    @State private var textEditorHeight: CGFloat = 60
+    @State private var textEditorHeight: CGFloat = 50
     @State private var keyboardHeight: CGFloat = 0
     @State private var showToast = false
     @State private var toastMessage = ""
     @State private var newChatId: String? = nil
     @State private var isNavigatingToChat = false
-    @EnvironmentObject var notificationManager: NotificationManager // Access the NotificationManager
+    @EnvironmentObject var notificationManager: NotificationManager
 
     var body: some View {
         NavigationStack {
@@ -28,19 +28,52 @@ struct PublicMessagesView: View {
                     VStack {
                         headerView
 
-                        ScrollView {
-                            messagesListView
+                        ScrollViewReader { scrollView in
+                            ScrollView {
+                                VStack {
+                                    // Sort messages in ascending order, so the latest messages are at the bottom
+                                    ForEach(groupedMessages.keys.sorted(), id: \.self) { date in
+                                        Section(header: dateHeaderView(date: date)) {
+                                            ForEach(groupedMessages[date] ?? []) { message in
+                                                messageItemView(message: message)
+                                                    .id(message.id) // Attach an ID for scrolling
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                            .onChange(of: groupedMessages) {
+                                scrollToEnd(scrollView)
+                            }
+                            .onChange(of: message) {
+                                scrollToEnd(scrollView)
+                            }
+                            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                                scrollToEnd(scrollView)
+                            }
+                            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                                scrollToEnd(scrollView)
+                            }
+                            .onAppear {
+                                scrollToEnd(scrollView)
+                            }
+
                         }
-                        .padding(.horizontal)
+                        
+                        Spacer()
 
                         messageInputView
+                            .padding(.bottom, keyboardHeight)
+                            .animation(.easeOut(duration: 0.16), value: keyboardHeight)
                     }
+                    .ignoresSafeArea(.keyboard, edges: .bottom)
                     .onAppear {
                         fetchMessages()
                         fetchCurrentUser()
                         fetchFriends()
                         updateLastReadTimestamp()
-                        resetNotificationCount() // Reset notifications when viewing
+                        resetNotificationCount()
                         subscribeToKeyboardEvents()
                     }
                     .onDisappear {
@@ -62,6 +95,41 @@ struct PublicMessagesView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
+
+    // MARK: - Helper Methods
+    private func scrollToEnd(_ scrollView: ScrollViewProxy) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let lastMessageId = groupedMessages.values.flatMap({ $0 }).last?.id {
+                withAnimation {
+                    scrollView.scrollTo(lastMessageId, anchor: .bottom)
+                }
+            } else {
+            }
+        }
+    }
+
+    private func subscribeToKeyboardEvents() {
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
+            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                self.keyboardHeight = keyboardFrame.height - 160
+                print("Debug: Keyboard will show. Height: \(self.keyboardHeight)")
+            }
+        }
+
+        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+            self.keyboardHeight = 0
+            print("Debug: Keyboard will hide.")
+        }
+    }
+
+    private func unsubscribeFromKeyboardEvents() {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+
+
+
 
     var headerView: some View {
         Text("📣 Announcements - Use Direct Messages for Private Responses.")
@@ -86,15 +154,18 @@ struct PublicMessagesView: View {
     }
 
     var messageInputView: some View {
-        HStack(alignment: .bottom) {
-            TextEditor(text: $message)
-                .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(5.0)
-                .frame(height: textEditorHeight)
-                .onChange(of: message) {
-                    adjustTextEditorHeight()
-                }
+        HStack(alignment: .center) {
+            VStack {
+                TextEditor(text: $message)
+                    .padding(8)
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(5.0)
+                    .frame(height: textEditorHeight)
+                    .onChange(of: message) {
+                        adjustTextEditorHeight()
+                    }
+            }
+
             Button(action: sendMessage) {
                 Image(systemName: "arrow.up.circle.fill")
                     .resizable()
@@ -103,7 +174,7 @@ struct PublicMessagesView: View {
                     .background(Color.blue)
                     .clipShape(Circle())
             }
-            .padding(.trailing, 10)
+            .padding(.leading, 10)
             .disabled(message.isEmpty)
         }
         .padding(.horizontal, 20)
@@ -132,6 +203,7 @@ struct PublicMessagesView: View {
         .zIndex(1)
     }
 
+    // MARK: - Helper Views and Functions
     func dateHeaderView(date: String) -> some View {
         Text(date)
             .font(.headline)
@@ -151,32 +223,32 @@ struct PublicMessagesView: View {
                         image
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 40, height: 40)
+                            .frame(width: 30, height: 30) // Reduced the size of profile image
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.gray, lineWidth: 1))
                     } placeholder: {
                         ProgressView()
-                            .frame(width: 40, height: 40)
+                            .frame(width: 30, height: 30) // Match profile image size
                     }
                 } else {
                     // Default icon if no profile image is available
                     Image(systemName: "person.circle.fill")
                         .resizable()
                         .scaledToFill()
-                        .frame(width: 40, height: 40)
+                        .frame(width: 30, height: 30) // Reduced size of default icon
                         .clipShape(Circle())
                         .foregroundColor(.gray)
                 }
             }
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     // Button to open or create group chat
                     Button(action: {
                         openOrCreateChat(with: message.senderUsername)
                     }) {
                         Text("\(message.senderName) (@\(message.senderUsername))")
-                            .font(.subheadline)
+                            .font(.footnote) // Smaller font
                             .fontWeight(.bold)
                             .foregroundColor(.blue)
                             .underline()
@@ -185,46 +257,48 @@ struct PublicMessagesView: View {
 
                     Spacer()
                     Text(message.timestamp.dateValue(), formatter: timeFormatter)
-                        .font(.caption)
+                        .font(.caption2) // Smaller font for timestamp
                         .foregroundColor(.gray)
                 }
 
                 // Announcements Styling
                 Text(message.content)
-                    .font(.body)
-                    .padding()
+                    .font(.footnote) // Smaller font for message content
+                    .padding(8) // Reduced padding for message bubble
                     .background(Color.blue.opacity(0.1))
-                    .cornerRadius(12)
+                    .cornerRadius(8) // Reduced corner radius for bubble
                     .foregroundColor(.black)
 
                 // Friend Status Indicator
                 HStack {
                     if friends.contains(message.senderUsername) {
-                        Text("🔹 Friend").font(.caption).foregroundColor(.green)
+                        Text("🔹 Friend").font(.caption2).foregroundColor(.green) // Smaller font
                     } else if message.senderUsername != currentUsername {
+                        // Add Friend Button
                         Button(action: {
+                            print("Debug: Adding \(message.senderUsername) as a friend.")
                             validateAndAddFriend(username: message.senderUsername)
                         }) {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
                                     .foregroundColor(.blue)
                                 Text("Add Friend")
-                                    .font(.caption)
+                                    .font(.caption2) // Smaller font
                                     .foregroundColor(.blue)
                             }
                         }
                     }
                 }
             }
-            .padding(10)
+            .padding(8) // Reduced overall padding
             .background(Color.white)
-            .cornerRadius(15)
+            .cornerRadius(10) // Reduced corner radius
             .shadow(color: Color.gray.opacity(0.3), radius: 2, x: 1, y: 1)
             .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 3) // Reduced vertical padding
         .background(Color.gray.opacity(0.05))
-        .cornerRadius(10)
+        .cornerRadius(8) // Reduced corner radius
         .padding(.horizontal)
     }
 
@@ -312,12 +386,10 @@ struct PublicMessagesView: View {
     }
     
 
-
-    
     func fetchMessages() {
         let db = Firestore.firestore()
         db.collection("publicMessages")
-            .order(by: "timestamp", descending: true)
+            .order(by: "timestamp", descending: true) // Fetch in descending order to get newer messages first
             .addSnapshotListener { snapshot, error in
                 if let error = error {
                     print("Error fetching public messages: \(error.localizedDescription)")
@@ -325,10 +397,8 @@ struct PublicMessagesView: View {
                     var messages = snapshot?.documents.compactMap { document in
                         try? document.data(as: PublicMessage.self)
                     } ?? []
-                    
-                    // Fetch profile image URLs for each message's sender
+
                     let dispatchGroup = DispatchGroup()
-                    
                     for index in messages.indices {
                         dispatchGroup.enter()
                         let senderId = messages[index].senderId
@@ -340,11 +410,10 @@ struct PublicMessagesView: View {
                             dispatchGroup.leave()
                         }
                     }
-                    
-                    // Once all profile images are fetched, update the groupedMessages state
+
                     dispatchGroup.notify(queue: .main) {
-                        messages.sort { $0.timestamp.dateValue() > $1.timestamp.dateValue() }
-                        groupedMessages = Dictionary(grouping: messages, by: { message in
+                        // Reverse sorting when grouping to ensure messages are displayed newest to oldest
+                        groupedMessages = Dictionary(grouping: messages.reversed(), by: { message in
                             let date = message.timestamp.dateValue()
                             return dateFormatter.string(from: date)
                         })
@@ -353,42 +422,41 @@ struct PublicMessagesView: View {
             }
     }
 
-    func sendMessage() {
-         guard let user = Auth.auth().currentUser else { return }
+       func sendMessage() {
+           guard let user = Auth.auth().currentUser else { return }
 
-         let db = Firestore.firestore()
-         db.collection("users").document(user.uid).getDocument { document, error in
-             if let error = error {
-                 print("Error fetching sender information: \(error.localizedDescription)")
-                 return
-             }
-             guard let document = document, document.exists, let data = document.data(), let name = data["name"] as? String, let username = data["username"] as? String else {
-                 print("Error fetching sender information")
-                 return
-             }
+           let db = Firestore.firestore()
+           db.collection("users").document(user.uid).getDocument { document, error in
+               if let error = error {
+                   print("Error fetching sender information: \(error.localizedDescription)")
+                   return
+               }
+               guard let document = document, document.exists, let data = document.data(), let name = data["name"] as? String, let username = data["username"] as? String else {
+                   print("Error fetching sender information")
+                   return
+               }
 
-             db.collection("publicMessages").addDocument(data: [
-                 "senderId": user.uid,
-                 "senderName": name,
-                 "senderUsername": username,
-                 "content": message,
-                 "timestamp": Timestamp(date: Date())
-             ]) { error in
-                 if let error = error {
-                     print("Error sending message: \(error.localizedDescription)")
-                 } else {
-                     message = ""
-                     textEditorHeight = 60
-                     resetNotificationCount() // Reset notifications on message send
-                 }
-             }
-         }
-     }
-    
-    func resetNotificationCount() {
-           notificationManager.resetPublicMessagesNotificationCount() // Implement this in your NotificationManager
+               db.collection("publicMessages").addDocument(data: [
+                   "senderId": user.uid,
+                   "senderName": name,
+                   "senderUsername": username,
+                   "content": message,
+                   "timestamp": Timestamp(date: Date())
+               ]) { error in
+                   if let error = error {
+                       print("Error sending message: \(error.localizedDescription)")
+                   } else {
+                       message = ""
+                       textEditorHeight = 60
+                       resetNotificationCount()
+                   }
+               }
+           }
        }
-    
+
+       func resetNotificationCount() {
+           notificationManager.resetPublicMessagesNotificationCount()
+       }
     func fetchCurrentUser() {
         guard let user = Auth.auth().currentUser else { return }
         let db = Firestore.firestore()
@@ -495,34 +563,22 @@ struct PublicMessagesView: View {
     }
 
     // MARK: - Keyboard Handling
-    private func subscribeToKeyboardEvents() {
-        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
-            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                self.keyboardHeight = keyboardFrame.height / 2 - 35 // Adjust height for keyboard
-            }
-        }
-        
-        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
-            self.keyboardHeight = 0
-        }
-    }
 
-    private func unsubscribeFromKeyboardEvents() {
-        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
-    }
 
     private func adjustTextEditorHeight() {
-        let size = CGSize(width: UIScreen.main.bounds.width - 100, height: .infinity) // Adjusted width to account for padding and button
+        let size = CGSize(width: UIScreen.main.bounds.width - 100, height: .infinity)
         let estimatedSize = NSString(string: message).boundingRect(
             with: size,
             options: .usesLineFragmentOrigin,
             attributes: [.font: UIFont.systemFont(ofSize: 16)],
             context: nil
         )
-        
-        let newHeight = max(80, min(estimatedSize.height + 30, 150)) // Ensure it doesn't shrink below initial height
-        textEditorHeight = newHeight
+
+        // Only expand the height if content exceeds current height
+        let newHeight = max(50, min(estimatedSize.height + 20, 150))
+        if newHeight > textEditorHeight {
+            textEditorHeight = newHeight
+        }
     }
 }
 
