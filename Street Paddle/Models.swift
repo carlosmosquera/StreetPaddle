@@ -33,6 +33,9 @@ struct GroupChat: Identifiable, Codable {
 
 }
 
+extension Notification.Name {
+    static let scrollToTop = Notification.Name("scrollToTop")
+}
 
 struct GroupMessage: Identifiable, Codable, Equatable {
     @DocumentID var id: String?

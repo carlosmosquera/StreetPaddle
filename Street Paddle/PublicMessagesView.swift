@@ -31,36 +31,36 @@ struct PublicMessagesView: View {
                         ScrollViewReader { scrollView in
                             ScrollView {
                                 VStack {
-                                    // Sort messages in ascending order, so the latest messages are at the bottom
-                                    ForEach(groupedMessages.keys.sorted(), id: \.self) { date in
+                                    // Sort dates descending to show the latest date sections first
+                                    ForEach(groupedMessages.keys.sorted(by: >), id: \.self) { date in
                                         Section(header: dateHeaderView(date: date)) {
                                             ForEach(groupedMessages[date] ?? []) { message in
                                                 messageItemView(message: message)
-                                                    .id(message.id) // Attach an ID for scrolling
+                                                    .id(message.id) // Attach message ID for finer scrolling
                                             }
                                         }
+                                        .id(date) // Attach section ID for scrolling to the header
                                     }
                                 }
                             }
                             .padding(.horizontal)
-                            .onChange(of: groupedMessages) {
-                                scrollToEnd(scrollView)
+                            .onAppear {
+                                scrollToTop(scrollView) // Scroll to the top when the view loads
                             }
-                            .onChange(of: message) {
-                                scrollToEnd(scrollView)
+                            .onChange(of: groupedMessages) { 
+                                scrollToTop(scrollView) // Scroll to the top when new messages arrive
+                            }
+                            .onReceive(NotificationCenter.default.publisher(for: .scrollToTop)) { _ in
+                                scrollToTop(scrollView) // Scroll to the top when receiving the notification
                             }
                             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                                scrollToEnd(scrollView)
+                                scrollToTop(scrollView) // Scroll to the top when the keyboard shows
                             }
                             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                                scrollToEnd(scrollView)
+                                scrollToTop(scrollView) // Scroll to the top when the keyboard hides
                             }
-                            .onAppear {
-                                scrollToEnd(scrollView)
-                            }
-
                         }
-                        
+
                         Spacer()
 
                         messageInputView
@@ -97,16 +97,25 @@ struct PublicMessagesView: View {
     }
 
     // MARK: - Helper Methods
-    private func scrollToEnd(_ scrollView: ScrollViewProxy) {
+
+
+    private func scrollToTop(_ scrollView: ScrollViewProxy) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if let lastMessageId = groupedMessages.values.flatMap({ $0 }).last?.id {
+            if let firstSectionKey = groupedMessages.keys.sorted(by: >).first {
                 withAnimation {
-                    scrollView.scrollTo(lastMessageId, anchor: .bottom)
+                    scrollView.scrollTo(firstSectionKey, anchor: .top)
                 }
-            } else {
             }
         }
     }
+
+
+
+
+
+
+
+
 
     private func subscribeToKeyboardEvents() {
         NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
@@ -389,70 +398,61 @@ struct PublicMessagesView: View {
     func fetchMessages() {
         let db = Firestore.firestore()
         db.collection("publicMessages")
-            .order(by: "timestamp", descending: true) // Fetch in descending order to get newer messages first
+            .order(by: "timestamp", descending: true) // Fetch newest messages first
             .addSnapshotListener { snapshot, error in
                 if let error = error {
                     print("Error fetching public messages: \(error.localizedDescription)")
                 } else {
-                    var messages = snapshot?.documents.compactMap { document in
+                    let messages = snapshot?.documents.compactMap { document in
                         try? document.data(as: PublicMessage.self)
                     } ?? []
 
-                    let dispatchGroup = DispatchGroup()
-                    for index in messages.indices {
-                        dispatchGroup.enter()
-                        let senderId = messages[index].senderId
-                        db.collection("users").document(senderId).getDocument { document, error in
-                            if let document = document, document.exists {
-                                let profileImageUrl = document.get("profileImageUrl") as? String
-                                messages[index].profileImageUrl = profileImageUrl
-                            }
-                            dispatchGroup.leave()
-                        }
-                    }
-
-                    dispatchGroup.notify(queue: .main) {
-                        // Reverse sorting when grouping to ensure messages are displayed newest to oldest
-                        groupedMessages = Dictionary(grouping: messages.reversed(), by: { message in
-                            let date = message.timestamp.dateValue()
-                            return dateFormatter.string(from: date)
-                        })
-                    }
+                    // Group messages by date
+                    groupedMessages = Dictionary(grouping: messages, by: { message in
+                        let date = message.timestamp.dateValue()
+                        return dateFormatter.string(from: date)
+                    })
                 }
             }
     }
 
-       func sendMessage() {
-           guard let user = Auth.auth().currentUser else { return }
+    func sendMessage() {
+        guard let user = Auth.auth().currentUser else { return }
 
-           let db = Firestore.firestore()
-           db.collection("users").document(user.uid).getDocument { document, error in
-               if let error = error {
-                   print("Error fetching sender information: \(error.localizedDescription)")
-                   return
-               }
-               guard let document = document, document.exists, let data = document.data(), let name = data["name"] as? String, let username = data["username"] as? String else {
-                   print("Error fetching sender information")
-                   return
-               }
+        let db = Firestore.firestore()
+        db.collection("users").document(user.uid).getDocument { document, error in
+            if let error = error {
+                print("Error fetching sender information: \(error.localizedDescription)")
+                return
+            }
+            guard let document = document, document.exists,
+                  let data = document.data(),
+                  let name = data["name"] as? String,
+                  let username = data["username"] as? String else {
+                print("Error fetching sender information")
+                return
+            }
 
-               db.collection("publicMessages").addDocument(data: [
-                   "senderId": user.uid,
-                   "senderName": name,
-                   "senderUsername": username,
-                   "content": message,
-                   "timestamp": Timestamp(date: Date())
-               ]) { error in
-                   if let error = error {
-                       print("Error sending message: \(error.localizedDescription)")
-                   } else {
-                       message = ""
-                       textEditorHeight = 60
-                       resetNotificationCount()
-                   }
-               }
-           }
-       }
+            db.collection("publicMessages").addDocument(data: [
+                "senderId": user.uid,
+                "senderName": name,
+                "senderUsername": username,
+                "content": message,
+                "timestamp": Timestamp(date: Date())
+            ]) { error in
+                if let error = error {
+                    print("Error sending message: \(error.localizedDescription)")
+                } else {
+                    message = "" // Clear the input
+                    textEditorHeight = 60 // Reset text editor height
+                    resetNotificationCount() // Reset notifications
+
+                    // Post the scrollToTop notification
+                    NotificationCenter.default.post(name: .scrollToTop, object: nil)
+                }
+            }
+        }
+    }
 
        func resetNotificationCount() {
            notificationManager.resetPublicMessagesNotificationCount()
