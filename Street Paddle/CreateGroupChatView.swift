@@ -127,68 +127,83 @@ struct CreateGroupChatView: View {
     func createChat() {
         let db = Firestore.firestore()
         let usernamesArray = usernames.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-
+        
         guard !usernamesArray.isEmpty else {
             errorMessage = "Usernames cannot be empty."
             return
         }
-
-        db.collection("users").whereField("username", in: usernamesArray).getDocuments { snapshot, error in
-            if let error = error {
-                errorMessage = error.localizedDescription
-                return
-            }
-
-            guard let documents = snapshot?.documents, !documents.isEmpty else {
-                errorMessage = "No users found with the provided usernames."
-                return
-            }
-
-            let memberIds = documents.map { $0.documentID }
-            let recipientUsernames = documents.compactMap { $0.data()["username"] as? String }
-            guard let currentUserID = Auth.auth().currentUser?.uid else {
-                errorMessage = "Current user not authenticated."
-                return
-            }
-
-            db.collection("users").document(currentUserID).getDocument { userDoc, error in
+        
+        // Check if a chat with the same users already exists
+        db.collection("groups")
+            .whereField("recipientUsernames", isEqualTo: usernamesArray)
+            .getDocuments { snapshot, error in
                 if let error = error {
                     errorMessage = error.localizedDescription
                     return
                 }
 
-                let creatorUsername = userDoc?.data()?["username"] as? String ?? "Unknown"
-
-                // Prepare the chat data
-                var chatData: [String: Any] = [
-                    "members": [currentUserID] + memberIds,
-                    "creatorUserID": currentUserID,
-                    "creatorUsername": creatorUsername,
-                    "recipientUsernames": recipientUsernames,
-                    "createdAt": Timestamp(),
-                    "latestMessage": "", // Initialize with empty string
-                    "latestMessageTimestamp": Timestamp() // Initialize with current timestamp
-                ]
-
-                if usernamesArray.count > 1 {
-                    chatData["groupChatName"] = groupName.isEmpty ? "Unnamed Group" : groupName
-                } else {
-                    chatData["directChatName"] = usernamesArray.first ?? "Chat"
+                // If a chat exists, show error message and return
+                if let documents = snapshot?.documents, !documents.isEmpty {
+                    errorMessage = "A chat with these users already exists."
+                    return
                 }
-
-                print("Final Chat Data: \(chatData)")
-
-                // Save the chat to Firestore
-                db.collection("groups").addDocument(data: chatData) { error in
+                
+                // Proceed with chat creation if no existing chat was found
+                db.collection("users").whereField("username", in: usernamesArray).getDocuments { snapshot, error in
                     if let error = error {
                         errorMessage = error.localizedDescription
-                    } else {
-                        chatManager.fetchGroupChats()
-                        self.presentationMode.wrappedValue.dismiss()
+                        return
+                    }
+                    
+                    guard let documents = snapshot?.documents, !documents.isEmpty else {
+                        errorMessage = "No users found with the provided usernames."
+                        return
+                    }
+
+                    let memberIds = documents.map { $0.documentID }
+                    let recipientUsernames = documents.compactMap { $0.data()["username"] as? String }
+                    guard let currentUserID = Auth.auth().currentUser?.uid else {
+                        errorMessage = "Current user not authenticated."
+                        return
+                    }
+
+                    db.collection("users").document(currentUserID).getDocument { userDoc, error in
+                        if let error = error {
+                            errorMessage = error.localizedDescription
+                            return
+                        }
+
+                        let creatorUsername = userDoc?.data()?["username"] as? String ?? "Unknown"
+                        
+                        // Prepare the chat data
+                        var chatData: [String: Any] = [
+                            "members": [currentUserID] + memberIds,
+                            "creatorUserID": currentUserID,
+                            "creatorUsername": creatorUsername,
+                            "recipientUsernames": recipientUsernames,
+                            "createdAt": Timestamp(),
+                            "latestMessage": "",
+                            "latestMessageTimestamp": Timestamp()
+                        ]
+
+                        if usernamesArray.count > 1 {
+                            chatData["groupChatName"] = groupName.isEmpty ? "Unnamed Group" : groupName
+                        } else {
+                            chatData["directChatName"] = usernamesArray.first ?? "Chat"
+                        }
+
+                        // Save the chat to Firestore
+                        db.collection("groups").addDocument(data: chatData) { error in
+                            if let error = error {
+                                errorMessage = error.localizedDescription
+                            } else {
+                                chatManager.fetchGroupChats()
+                                self.presentationMode.wrappedValue.dismiss()
+                            }
+                        }
                     }
                 }
             }
-        }
     }
 }
 
