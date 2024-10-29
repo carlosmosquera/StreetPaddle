@@ -111,12 +111,6 @@ struct PublicMessagesView: View {
 
 
 
-
-
-
-
-
-
     private func subscribeToKeyboardEvents() {
         NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
             if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
@@ -228,16 +222,29 @@ struct PublicMessagesView: View {
             NavigationLink(destination: ProfileView(userId: message.senderId)) {
                 // Display the profile image if available
                 if let profileImageUrl = message.profileImageUrl, let url = URL(string: profileImageUrl) {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 30, height: 30) // Reduced the size of profile image
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.gray, lineWidth: 1))
-                    } placeholder: {
-                        ProgressView()
-                            .frame(width: 30, height: 30) // Match profile image size
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                                .frame(width: 30, height: 30) // Match profile image size
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 30, height: 30) // Reduced the size of profile image
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.gray, lineWidth: 1))
+                        case .failure:
+                            // Default icon if loading fails
+                            Image(systemName: "person.circle.fill")
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 30, height: 30) // Reduced size of default icon
+                                .clipShape(Circle())
+                                .foregroundColor(.gray)
+                        @unknown default:
+                            EmptyView()
+                        }
                     }
                 } else {
                     // Default icon if no profile image is available
@@ -396,26 +403,43 @@ struct PublicMessagesView: View {
     
 
     func fetchMessages() {
-        let db = Firestore.firestore()
-        db.collection("publicMessages")
-            .order(by: "timestamp", descending: true) // Fetch newest messages first
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("Error fetching public messages: \(error.localizedDescription)")
-                } else {
-                    let messages = snapshot?.documents.compactMap { document in
-                        try? document.data(as: PublicMessage.self)
-                    } ?? []
-
-                    // Group messages by date
-                    groupedMessages = Dictionary(grouping: messages, by: { message in
-                        let date = message.timestamp.dateValue()
-                        return dateFormatter.string(from: date)
-                    })
-                }
-            }
-    }
-
+           let db = Firestore.firestore()
+           db.collection("publicMessages")
+               .order(by: "timestamp", descending: true)
+               .addSnapshotListener { snapshot, error in
+                   if let error = error {
+                       print("Error fetching public messages: \(error.localizedDescription)")
+                   } else {
+                       var messages = snapshot?.documents.compactMap { document in
+                           try? document.data(as: PublicMessage.self)
+                       } ?? []
+                       
+                       // Fetch profile image URLs for each message's sender
+                       let dispatchGroup = DispatchGroup()
+                       
+                       for index in messages.indices {
+                           dispatchGroup.enter()
+                           let senderId = messages[index].senderId
+                           db.collection("users").document(senderId).getDocument { document, error in
+                               if let document = document, document.exists {
+                                   let profileImageUrl = document.get("profileImageUrl") as? String
+                                   messages[index].profileImageUrl = profileImageUrl
+                               }
+                               dispatchGroup.leave()
+                           }
+                       }
+                       
+                       // Once all profile images are fetched, update the groupedMessages state
+                       dispatchGroup.notify(queue: .main) {
+                           messages.sort { $0.timestamp.dateValue() > $1.timestamp.dateValue() }
+                           groupedMessages = Dictionary(grouping: messages, by: { message in
+                               let date = message.timestamp.dateValue()
+                               return dateFormatter.string(from: date)
+                           })
+                       }
+                   }
+               }
+       }
     func sendMessage() {
         guard let user = Auth.auth().currentUser else { return }
 
