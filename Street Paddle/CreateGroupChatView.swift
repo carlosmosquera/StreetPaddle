@@ -64,11 +64,18 @@ struct CreateGroupChatView: View {
             .disabled(!canCreateChat) // Disable button based on the conditions
 
             // Error message display
+
+            // Error message display
             if !errorMessage.isEmpty {
                 Text(errorMessage)
                     .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
                     .padding()
+                    .frame(maxWidth: .infinity) // Allow the text to take the maximum available width
+                    .fixedSize(horizontal: false, vertical: true) // Allow the text to expand vertically
             }
+
+
         }
         .padding()
         .navigationTitle("Create Chat")
@@ -144,7 +151,7 @@ struct CreateGroupChatView: View {
 
                 // If a chat exists, show error message and return
                 if let documents = snapshot?.documents, !documents.isEmpty {
-                    errorMessage = "A chat with these users already exists."
+                    errorMessage = "A chat with these users already exists, use the search bar instead. Unhide the chat if hidden."
                     return
                 }
                 

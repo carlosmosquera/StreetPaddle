@@ -10,11 +10,11 @@ struct InboxGroupView: View {
     @State private var messagesListener: ListenerRegistration? // Listener for real-time message updates
     private var db = Firestore.firestore() // Firestore reference
     private let hiddenChatsKey = "hiddenGroupChats" // Key for UserDefaults
-    
+
     init(chatManager: ChatManager) {
         _chatManager = ObservedObject(wrappedValue: chatManager)
     }
-    
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -23,92 +23,22 @@ struct InboxGroupView: View {
                     .opacity(0.3)
                     .aspectRatio(contentMode: .fill)
                     .ignoresSafeArea()
-                
+
                 VStack {
-                    Text(chatManager.groupChats.isEmpty ? "No Chats" : "Chats")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    
-                    HStack { // Search Bar
-                        TextField("Search group chats...", text: $searchText)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .padding(.leading, 8)
-                            .padding(.vertical, 8)
-                        
-                        if !searchText.isEmpty {
-                            Button(action: {
-                                searchText = ""
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.gray)
-                            }
-                            .padding(.trailing, 8)
-                        }
-                    }
-                    
+                    HeaderView(chatManager: chatManager)
+
+                    SearchBar(searchText: $searchText)
+
                     ScrollView {
                         VStack(spacing: 10) {
                             ForEach(filteredGroupChats) { groupChat in
-                                if !hiddenGroupChats.contains(groupChat.id ?? "") { // Only show if not hidden
-                                    HStack {
-                                        NavigationLink(
-                                            destination: GroupChatView(groupId: groupChat.id ?? "")
-                                        ) {
-                                            HStack {
-                                                VStack(alignment: .leading, spacing: 4) {
-                                                    Text(displayName(for: groupChat))
-                                                        .font(.headline)
-                                                    
-                                                    HStack {
-                                                        if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
-                                                            Text(latestMessage)
-                                                                .font(.subheadline)
-                                                                .foregroundColor(.gray)
-                                                                .lineLimit(1)
-                                                        } else {
-                                                            Text("No preview")
-                                                                .font(.subheadline)
-                                                                .foregroundColor(.gray)
-                                                        }
-                                                        Spacer()
-                                                        if let timestamp = groupChat.latestMessageTimestamp {
-                                                            Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
-                                                                .font(.caption)
-                                                                .foregroundColor(.gray)
-                                                        }
-                                                    }
-                                                }
-                                                Spacer()
-                                                
-                                                // Conditionally display the badge for unread messages
-                                                if let unreadCount = groupChat.unreadCount, unreadCount > 0 {
-                                                    Text("\(unreadCount)")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.white)
-                                                        .padding(6)
-                                                        .background(Color.red)
-                                                        .clipShape(Circle())
-                                                }
-                                            }
-                                        }
-                                        
-                                        // Minus icon to hide the group chat
-                                        Button(action: {
-                                            hideGroupChat(groupChat: groupChat)
-                                        }) {
-                                            Image(systemName: "minus.circle.fill")
-                                                .foregroundColor(.red)
-                                                .font(.title2)
-                                        }
-                                        .padding(.leading, 8)
-                                    }
-                                    .padding()
-                                    .background(Color.gray.opacity(0.1))
-                                    .cornerRadius(8)
-                                }
+                                GroupChatRow(
+                                    groupChat: groupChat,
+                                    isHidden: hiddenGroupChats.contains(groupChat.id ?? ""),
+                                    hideAction: { hideGroupChat(groupChat: groupChat) },
+                                    unhideAction: { unhideGroupChat(groupChat: groupChat) },
+                                    displayName: displayName(for: groupChat)
+                                )
                             }
                         }
                         .padding(.horizontal)
@@ -131,22 +61,27 @@ struct InboxGroupView: View {
             listenForGroupChats()   // Real-time listener for group chats
             listenForUnreadMessages() // Real-time listener for unread messages
         }
-
-
         .onDisappear {
             stopListening()  // Stop all listeners when the view disappears
         }
     }
-    
-    // Hide a group chat and save the change
+
+    // Extracted Functionality for Hiding/Unhiding Group Chats
+    func unhideGroupChat(groupChat: GroupChat) {
+        if let groupId = groupChat.id {
+            hiddenGroupChats.remove(groupId)
+            saveHiddenGroupChats() // Save to UserDefaults
+        }
+    }
+
     func hideGroupChat(groupChat: GroupChat) {
         if let groupId = groupChat.id {
             hiddenGroupChats.insert(groupId)
             saveHiddenGroupChats() // Save to UserDefaults
         }
     }
-    
-    // Load hidden group chats from UserDefaults
+
+    // Load and Save Hidden Chats
     func loadHiddenGroupChats() {
         if let savedChats = UserDefaults.standard.array(forKey: hiddenChatsKey) as? [String] {
             DispatchQueue.main.async {
@@ -155,22 +90,8 @@ struct InboxGroupView: View {
         }
     }
 
-    
-    // Save hidden group chats to UserDefaults
     func saveHiddenGroupChats() {
         UserDefaults.standard.set(Array(hiddenGroupChats), forKey: hiddenChatsKey)
-    }
-    
-    // Filter group chats based on search text
-    var filteredGroupChats: [GroupChat] {
-        let visibleChats = chatManager.groupChats.filter { !hiddenGroupChats.contains($0.id ?? "") }
-        if searchText.isEmpty {
-            return visibleChats
-        } else {
-            return visibleChats.filter { groupChat in
-                displayName(for: groupChat).localizedCaseInsensitiveContains(searchText)
-            }
-        }
     }
 
     // Real-time listener for group chats
@@ -193,7 +114,8 @@ struct InboxGroupView: View {
                 }
             }
     }
-    
+
+    // Real-time listener for unread messages
     func listenForUnreadMessages() {
         guard let user = Auth.auth().currentUser else { return }
         db.collection("groups")
@@ -220,7 +142,11 @@ struct InboxGroupView: View {
             }
     }
 
-    
+    // Stop all listeners when the view disappears
+    func stopListening() {
+        messagesListener?.remove()
+    }
+
     // Fetch unread count for each group chat
     func fetchUnreadCount(for groupChatId: String, completion: @escaping (Int) -> Void) {
         guard let userId = Auth.auth().currentUser?.uid else { return }
@@ -252,20 +178,14 @@ struct InboxGroupView: View {
                 }
         }
     }
-    
+
     // Update unread message count in the UI
     func updateGroupUnreadCount(groupId: String, unreadCount: Int) {
         if let index = chatManager.groupChats.firstIndex(where: { $0.id == groupId }) {
             chatManager.groupChats[index].unreadCount = unreadCount
         }
     }
-    
-    // Stop all listeners when the view disappears
-    func stopListening() {
-        messagesListener?.remove()
-    }
-    
-    
+
     // Function to display group chat names
     func displayName(for groupChat: GroupChat) -> String {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return "Chat" }
@@ -275,40 +195,131 @@ struct InboxGroupView: View {
         } else if let creatorUserID = groupChat.creatorUserID, let creatorUsername = groupChat.creatorUsername {
             if creatorUserID == currentUserID {
                 if let recipientUsername = groupChat.recipientUsernames?.first {
-                    fetchUserNameByUsername(recipientUsername) { name in
-                        if let name = name {
-                            self.userNameCache[recipientUsername] = name
-                        }
-                    }
-                    return "\(recipientUsername)" + (userNameCache[recipientUsername] != nil ? " (\(userNameCache[recipientUsername]!))" : "")
+                    return recipientUsername
                 } else {
                     return "Chat"
                 }
             } else {
-                fetchUserNameByUsername(creatorUsername) { name in
-                    if let name = name {
-                        self.userNameCache[creatorUsername] = name
-                    }
-                }
-                return "\(creatorUsername)" + (userNameCache[creatorUsername] != nil ? " (\(userNameCache[creatorUsername]!))" : "")
+                return creatorUsername
             }
         } else {
             return "Chat"
         }
     }
-    
-    // Fetch the user's name by their username
-    func fetchUserNameByUsername(_ username: String, completion: @escaping (String?) -> Void) {
-        db.collection("users").whereField("username", isEqualTo: username).getDocuments { querySnapshot, error in
-            if let error = error {
-                print("Error fetching user name by username: \(error)")
-                completion(nil)
-            } else if let document = querySnapshot?.documents.first, let name = document.data()["name"] as? String {
-                completion(name)
-            } else {
-                completion(nil)
+
+    // Computed property for filtered group chats
+    var filteredGroupChats: [GroupChat] {
+        let visibleChats = chatManager.groupChats.filter { !hiddenGroupChats.contains($0.id ?? "") }
+        let hiddenChats = chatManager.groupChats.filter { hiddenGroupChats.contains($0.id ?? "") }
+        
+        if searchText.isEmpty {
+            return visibleChats
+        } else {
+            // Include both visible and hidden chats in the search results
+            return (visibleChats + hiddenChats).filter { groupChat in
+                displayName(for: groupChat).localizedCaseInsensitiveContains(searchText)
             }
         }
     }
-    
+}
+
+// Extracted Subview for Header
+struct HeaderView: View {
+    var chatManager: ChatManager
+
+    var body: some View {
+        Text(chatManager.groupChats.isEmpty ? "No Chats" : "Chats")
+            .font(.title)
+            .fontWeight(.bold)
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .center)
+    }
+}
+
+// Extracted Subview for Search Bar
+struct SearchBar: View {
+    @Binding var searchText: String
+
+    var body: some View {
+        HStack {
+            TextField("Search group chats...", text: $searchText)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.leading, 8)
+                .padding(.vertical, 8)
+
+            if !searchText.isEmpty {
+                Button(action: {
+                    searchText = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.gray)
+                }
+                .padding(.trailing, 8)
+            }
+        }
+    }
+}
+
+// Extracted Subview for Group Chat Row
+struct GroupChatRow: View {
+    var groupChat: GroupChat
+    var isHidden: Bool
+    var hideAction: () -> Void
+    var unhideAction: () -> Void
+    var displayName: String
+
+    var body: some View {
+        HStack {
+            NavigationLink(destination: GroupChatView(groupId: groupChat.id ?? "")) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(displayName)
+                            .font(.headline)
+
+                        HStack {
+                            if let latestMessage = groupChat.latestMessage, !latestMessage.isEmpty {
+                                Text(latestMessage)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                    .lineLimit(1)
+                            } else {
+                                Text("No preview")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            if let timestamp = groupChat.latestMessageTimestamp {
+                                Text(timestamp.dateValue().formatted(date: .numeric, time: .shortened))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                    Spacer()
+
+                    if let unreadCount = groupChat.unreadCount, unreadCount > 0 {
+                        Text("\(unreadCount)")
+                            .font(.caption2)
+                            .foregroundColor(.white)
+                            .padding(6)
+                            .background(Color.red)
+                            .clipShape(Circle())
+                    }
+                }
+            }
+
+            Button(action: {
+                isHidden ? unhideAction() : hideAction()
+            }) {
+                Image(systemName: isHidden ? "eye.fill" : "minus.circle.fill")
+                    .foregroundColor(isHidden ? .green : .red)
+                    .font(.title2)
+            }
+            .padding(.leading, 8)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(8)
+    }
 }
