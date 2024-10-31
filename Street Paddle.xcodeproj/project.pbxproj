@@ -26,6 +26,8 @@
 		275919E72C99F0C80067797F /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275919E62C99F0C80067797F /* ImagePicker.swift */; };
 		276E4D6E2C5B108000783B6D /* Longhaul.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 276E4D6D2C5B107F00783B6D /* Longhaul.ttf */; };
 		276E4D742C5D47D800783B6D /* TournamentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 276E4D732C5D47D800783B6D /* TournamentsView.swift */; };
+		278FEB9E2CD190EA00937C85 /* StoreVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278FEB9D2CD190E600937C85 /* StoreVM.swift */; };
+		278FEBA02CD1925F00937C85 /* SubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278FEB9F2CD1925F00937C85 /* SubscriptionView.swift */; };
 		279170192C5A952300EB068B /* Street_PaddleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 279170182C5A952300EB068B /* Street_PaddleApp.swift */; };
 		2791701B2C5A952300EB068B /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2791701A2C5A952300EB068B /* ContentView.swift */; };
 		2791701D2C5A952400EB068B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2791701C2C5A952400EB068B /* Assets.xcassets */; };
@@ -77,6 +79,9 @@
 		276E4D6C2C5B063B00783B6D /* Street-Paddle-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Street-Paddle-Info.plist"; sourceTree = SOURCE_ROOT; };
 		276E4D6D2C5B107F00783B6D /* Longhaul.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Longhaul.ttf; sourceTree = "<group>"; };
 		276E4D732C5D47D800783B6D /* TournamentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TournamentsView.swift; sourceTree = "<group>"; };
+		278FEB992CD18FA400937C85 /* Product.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Product.storekit; sourceTree = "<group>"; };
+		278FEB9D2CD190E600937C85 /* StoreVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreVM.swift; sourceTree = "<group>"; };
+		278FEB9F2CD1925F00937C85 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
 		279170152C5A952300EB068B /* Street Paddle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Street Paddle.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		279170182C5A952300EB068B /* Street_PaddleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Street_PaddleApp.swift; sourceTree = "<group>"; };
 		2791701A2C5A952300EB068B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -140,11 +145,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		278FEB912CD06AFB00937C85 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		2791700C2C5A952300EB068B = {
 			isa = PBXGroup;
 			children = (
 				279170172C5A952300EB068B /* Street Paddle */,
 				279170162C5A952300EB068B /* Products */,
+				278FEB912CD06AFB00937C85 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -159,12 +172,15 @@
 		279170172C5A952300EB068B /* Street Paddle */ = {
 			isa = PBXGroup;
 			children = (
+				278FEB992CD18FA400937C85 /* Product.storekit */,
 				27FFFE172CAC53ED0070A590 /* Street Paddle.entitlements */,
 				276E4D6C2C5B063B00783B6D /* Street-Paddle-Info.plist */,
 				279170262C5A956600EB068B /* GoogleService-Info.plist */,
 				2791701C2C5A952400EB068B /* Assets.xcassets */,
 				276E4D6D2C5B107F00783B6D /* Longhaul.ttf */,
 				2791701E2C5A952400EB068B /* Preview Content */,
+				278FEB9D2CD190E600937C85 /* StoreVM.swift */,
+				278FEB9F2CD1925F00937C85 /* SubscriptionView.swift */,
 				279170182C5A952300EB068B /* Street_PaddleApp.swift */,
 				2791701A2C5A952300EB068B /* ContentView.swift */,
 				279170622C5A9BA400EB068B /* MainView.swift */,
@@ -308,11 +324,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				27DBDCD52C76FBB80078580B /* Models.swift in Sources */,
+				278FEBA02CD1925F00937C85 /* SubscriptionView.swift in Sources */,
 				27CA22642C6AEF3B00F04987 /* ChatManager.swift in Sources */,
 				279170692C5A9BDF00EB068B /* PublicMessagesView.swift in Sources */,
 				271F19E02C8915380027D754 /* DrawDetailView.swift in Sources */,
 				27DADF242CADDAA20035667C /* NotificationsManager.swift in Sources */,
 				2791701B2C5A952300EB068B /* ContentView.swift in Sources */,
+				278FEB9E2CD190EA00937C85 /* StoreVM.swift in Sources */,
 				279170672C5A9BD000EB068B /* SignUpView.swift in Sources */,
 				271E11702C65D69600CF389E /* GroupChatView.swift in Sources */,
 				275919E72C99F0C80067797F /* ImagePicker.swift in Sources */,

@@ -89,6 +89,7 @@ struct FriendsListView: View {
                 .navigationDestination(isPresented: $isNavigatingToChat) {
                     if let groupId = newChatId {
                         GroupChatView(groupId: groupId)
+                            .navigationBarBackButtonHidden(true) // Hide the default back button
                     }
                 }
             }
