@@ -469,8 +469,13 @@ struct PublicMessagesView: View {
                 if let error = error {
                     print("Error sending message: \(error.localizedDescription)")
                 } else {
-                    message = "" // Clear the input
-                    textEditorHeight = 60 // Reset text editor height
+                    // Clear the input and reset the text editor height
+                    message = ""
+                    textEditorHeight = 60
+                    
+                    // Hide the keyboard
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    
                     resetNotificationCount() // Reset notifications
 
                     // Post the scrollToTop notification
