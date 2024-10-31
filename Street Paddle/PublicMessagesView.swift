@@ -592,17 +592,21 @@ struct PublicMessagesView: View {
 
 
     private func adjustTextEditorHeight() {
-        let size = CGSize(width: UIScreen.main.bounds.width - 100, height: .infinity)
+        let widthConstraint = UIScreen.main.bounds.width - 100 // Adjust based on padding or parent view constraints
         let estimatedSize = NSString(string: message).boundingRect(
-            with: size,
+            with: CGSize(width: widthConstraint, height: .infinity),
             options: .usesLineFragmentOrigin,
             attributes: [.font: UIFont.systemFont(ofSize: 16)],
             context: nil
         )
         
-        let newHeight = max(80, min(estimatedSize.height + 30, 150))
-        textEditorHeight = newHeight
+        // Only adjust height if the text needs more space horizontally
+        if estimatedSize.width > widthConstraint {
+            let newHeight = max(80, min(estimatedSize.height + 30, 150))
+            textEditorHeight = newHeight
+        }
     }
+
 }
 
 

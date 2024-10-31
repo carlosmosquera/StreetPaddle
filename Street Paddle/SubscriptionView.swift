@@ -9,30 +9,23 @@ import SwiftUI
 import StoreKit
 
 struct SubscriptionView: View {
-    
     @EnvironmentObject var storeVM: StoreVM
     @State var isPurchased = false
-    
-    @State private var email = ""
-    @State private var password = ""
 
     var body: some View {
         ZStack {
-            
-            Image(.court)
+            // Background styling
+            Image("court") // Make sure "court" image exists in your assets
                 .resizable()
                 .opacity(0.3)
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
-            
-            VStack {
-                
-                Text("STREET PADDLE")
-                    .frame(height: 0.0)
-                    .offset(x: 0.0, y: -80.0)
-                    .font(.custom("Longhaul", size: 45))
 
-         
+            VStack {
+                Text("STREET PADDLE")
+                    .font(.custom("Longhaul", size: 45))
+                    .offset(y: -80)
+
                 Group {
                     Section("Enjoy the fun!") {
                         ForEach(storeVM.subscriptions) { product in
@@ -40,41 +33,36 @@ struct SubscriptionView: View {
                                 Task {
                                     await buy(product: product)
                                 }
-                            }
-                            )
-                            {
-                                VStack{
-                                    
-                        
-                                    
+                            }) {
+                                VStack {
                                     HStack {
                                         Text(product.displayPrice)
                                         Text(product.displayName)
                                     }
-                                }.padding()
+                                }
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(15.0)
                             }
-                            .foregroundColor(Color.white)
-//                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(15.0)
-                            
+                            .foregroundColor(.white)
                         }
                     }
                 }
             }
         }
     }
-    
+
     func buy(product: Product) async {
         do {
             if try await storeVM.purchase(product) != nil {
                 isPurchased = true
             }
         } catch {
-            print("purchase failed")
+            print("Purchase failed")
         }
     }
 }
+
 
 struct SubscriptionView_Previews: PreviewProvider {
     static var previews: some View {
