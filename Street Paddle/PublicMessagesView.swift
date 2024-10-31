@@ -13,10 +13,10 @@ struct PublicMessagesView: View {
     @State private var toastMessage = ""
     @State private var newChatId: String? = nil
     @State private var isNavigatingToChat = false
+    @State private var selectedUsername: String? = nil // Added for tracking the selected username
     @EnvironmentObject var notificationManager: NotificationManager
     
     var body: some View {
-        //        NavigationStack {
         GeometryReader { geometry in
             ZStack {
                 Image(.court)
@@ -31,50 +31,38 @@ struct PublicMessagesView: View {
                     ScrollViewReader { scrollView in
                         ScrollView {
                             VStack {
-                                // Sort dates descending to show the latest date sections first
                                 ForEach(groupedMessages.keys.sorted(by: >), id: \.self) { date in
                                     Section(header: dateHeaderView(date: date)) {
                                         ForEach(groupedMessages[date] ?? []) { message in
                                             messageItemView(message: message)
-                                                .id(message.id) // Attach message ID for finer scrolling
+                                                .id(message.id)
                                         }
                                     }
-                                    .id(date) // Attach section ID for scrolling to the header
+                                    .id(date)
                                 }
                             }
                         }
                         .padding(.horizontal)
                         .onAppear {
-                            scrollToTop(scrollView) // Scroll to the top when the view loads
+                            scrollToTop(scrollView)
                         }
                         .onChange(of: groupedMessages) {
-                            scrollToTop(scrollView) // Scroll to the top when new messages arrive
-                        }
-                        .onReceive(NotificationCenter.default.publisher(for: .scrollToTop)) { _ in
-                            scrollToTop(scrollView) // Scroll to the top when receiving the notification
-                        }
-                        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                            scrollToTop(scrollView) // Scroll to the top when the keyboard shows
-                        }
-                        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                            scrollToTop(scrollView) // Scroll to the top when the keyboard hides
+                            scrollToTop(scrollView)
                         }
                     }
                     
                     Spacer()
                     
                     HStack(alignment: .center) {
-                 
-                            TextEditor(text: $message)
-                                .padding(8)
-                                .background(Color.gray.opacity(0.2))
-                                .cornerRadius(5.0)
-                                .frame(height: textEditorHeight)
-                                .onChange(of: message) {
-                                    adjustTextEditorHeight()
-                                }
+                        TextEditor(text: $message)
+                            .padding(8)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(5.0)
+                            .frame(height: textEditorHeight)
+                            .onChange(of: message) {
+                                adjustTextEditorHeight()
+                            }
                         
-
                         Button(action: sendMessage) {
                             Image(systemName: "arrow.up.circle.fill")
                                 .resizable()
@@ -86,7 +74,6 @@ struct PublicMessagesView: View {
                         .padding(.leading, 10)
                         .disabled(message.isEmpty)
                         .frame(height: textEditorHeight)
-
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 10)
@@ -95,7 +82,6 @@ struct PublicMessagesView: View {
                 }
                 .frame(width: geometry.size.width)
                 .ignoresSafeArea(.keyboard, edges: .bottom)
-                
                 .onAppear {
                     fetchMessages()
                     fetchCurrentUser()
@@ -114,14 +100,15 @@ struct PublicMessagesView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $isNavigatingToChat) {
-            if let groupId = newChatId {
-                GroupChatView(groupId: groupId)
-            }
-        }
+        .background(
+            NavigationLink(
+                destination: GroupChatView(groupId: newChatId ?? ""),
+                isActive: $isNavigatingToChat,
+                label: { EmptyView() }
+            )
+            .hidden()
+        )
         .navigationBarTitleDisplayMode(.inline)
-        
-        .navigationViewStyle(StackNavigationViewStyle())
     }
 //}
     // MARK: - Helper Methods
@@ -219,107 +206,58 @@ struct PublicMessagesView: View {
     }
 
     func messageItemView(message: PublicMessage) -> some View {
-        HStack(alignment: .top) {
-            // Profile image navigation link
-            NavigationLink(destination: ProfileView(userId: message.senderId)) {
-                // Display the profile image if available
-                if let profileImageUrl = message.profileImageUrl, let url = URL(string: profileImageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .frame(width: 30, height: 30) // Match profile image size
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 30, height: 30) // Reduced the size of profile image
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.gray, lineWidth: 1))
-                        case .failure:
-                            // Default icon if loading fails
-                            Image(systemName: "person.circle.fill")
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 30, height: 30) // Reduced size of default icon
-                                .clipShape(Circle())
-                                .foregroundColor(.gray)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                } else {
-                    // Default icon if no profile image is available
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 30, height: 30) // Reduced size of default icon
-                        .clipShape(Circle())
-                        .foregroundColor(.gray)
-                }
-            }
+           HStack(alignment: .top) {
+               Image(systemName: "person.circle.fill")
+                   .resizable()
+                   .scaledToFill()
+                   .frame(width: 30, height: 30)
+                   .clipShape(Circle())
+                   .foregroundColor(.gray)
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    // Button to open or create group chat
-                    Button(action: {
-                        openOrCreateChat(with: message.senderUsername)
-                    }) {
-                        Text("\(message.senderName) (@\(message.senderUsername))")
-                            .font(.footnote) // Smaller font
-                            .fontWeight(.bold)
-                            .foregroundColor(.blue)
-                            .underline()
-                    }
-                    .buttonStyle(PlainButtonStyle())
+               VStack(alignment: .leading, spacing: 4) {
+                   HStack {
+                       if message.senderUsername != currentUsername {
+                           Button(action: {
+                               openOrCreateChat(with: message.senderUsername)
+                           }) {
+                               Text("\(message.senderName) (@\(message.senderUsername))")
+                                   .font(.footnote)
+                                   .fontWeight(.bold)
+                                   .foregroundColor(.blue)
+                                   .underline()
+                           }
+                           .buttonStyle(PlainButtonStyle())
+                       } else {
+                           Text("\(message.senderName) (@\(message.senderUsername))")
+                               .font(.footnote)
+                               .fontWeight(.bold)
+                               .foregroundColor(.gray)
+                       }
 
-                    Spacer()
-                    Text(message.timestamp.dateValue(), formatter: timeFormatter)
-                        .font(.caption2) // Smaller font for timestamp
-                        .foregroundColor(.gray)
-                }
+                       Spacer()
+                       Text(message.timestamp.dateValue(), formatter: timeFormatter)
+                           .font(.caption2)
+                           .foregroundColor(.gray)
+                   }
 
-                // Announcements Styling
-                Text(message.content)
-                    .font(.footnote) // Smaller font for message content
-                    .padding(8) // Reduced padding for message bubble
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8) // Reduced corner radius for bubble
-                    .foregroundColor(.black)
-
-                // Friend Status Indicator
-                HStack {
-                    if friends.contains(message.senderUsername) {
-                        Text("🔹 Friend").font(.caption2).foregroundColor(.green) // Smaller font
-                    } else if message.senderUsername != currentUsername {
-                        // Add Friend Button
-                        Button(action: {
-                            print("Debug: Adding \(message.senderUsername) as a friend.")
-                            validateAndAddFriend(username: message.senderUsername)
-                        }) {
-                            HStack {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(.blue)
-                                Text("Add Friend")
-                                    .font(.caption2) // Smaller font
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(8) // Reduced overall padding
-            .background(Color.white)
-            .cornerRadius(10) // Reduced corner radius
-            .shadow(color: Color.gray.opacity(0.3), radius: 2, x: 1, y: 1)
-            .frame(maxWidth: .infinity)
-        }
-        .padding(.vertical, 3) // Reduced vertical padding
-        .background(Color.gray.opacity(0.05))
-        .cornerRadius(8) // Reduced corner radius
-        .padding(.horizontal)
-    }
-
+                   Text(message.content)
+                       .font(.footnote)
+                       .padding(8)
+                       .background(Color.blue.opacity(0.1))
+                       .cornerRadius(8)
+                       .foregroundColor(.black)
+               }
+               .padding(8)
+               .background(Color.white)
+               .cornerRadius(10)
+               .shadow(color: Color.gray.opacity(0.3), radius: 2, x: 1, y: 1)
+               .frame(maxWidth: .infinity)
+           }
+           .padding(.vertical, 3)
+           .background(Color.gray.opacity(0.05))
+           .cornerRadius(8)
+           .padding(.horizontal)
+       }
     func openOrCreateChat(with friendUsername: String) {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
@@ -334,7 +272,7 @@ struct PublicMessagesView: View {
                 }
 
                 if let chat = snapshot?.documents.first {
-                    // Chat with the friend's username as the group name already exists
+                    // Chat with the friend's username already exists
                     self.newChatId = chat.documentID
                     self.isNavigatingToChat = true
                 } else {
@@ -345,48 +283,47 @@ struct PublicMessagesView: View {
     }
 
     func createNewChat(with friendUsername: String) {
-        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
+            guard let currentUserId = Auth.auth().currentUser?.uid else { return }
+            let db = Firestore.firestore()
 
-        db.collection("users")
-            .whereField("username", isEqualTo: friendUsername)
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    print("Error fetching user: \(error.localizedDescription)")
-                    return
-                }
-
-                guard let friendDoc = snapshot?.documents.first else {
-                    print("No user found with username \(friendUsername)")
-                    return
-                }
-
-                let friendId = friendDoc.documentID
-                let creatorUsername = Auth.auth().currentUser?.displayName ?? "Unknown"
-
-                let newChatData: [String: Any] = [
-                    "members": [currentUserId, friendId],
-                    "creatorUserID": currentUserId,
-                    "creatorUsername": creatorUsername,
-                    "recipientUsernames": [friendUsername],
-                    "createdAt": Timestamp(),
-                    "directChatName": friendUsername
-                ]
-
-                var newChatRef: DocumentReference? = nil
-                newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
+            db.collection("users")
+                .whereField("username", isEqualTo: friendUsername)
+                .getDocuments { snapshot, error in
                     if let error = error {
-                        print("Error creating chat: \(error.localizedDescription)")
-                    } else {
-                        if let documentId = newChatRef?.documentID {
-                            self.newChatId = documentId
+                        print("Error fetching user: \(error.localizedDescription)")
+                        return
+                    }
+
+                    guard let friendDoc = snapshot?.documents.first else {
+                        print("No user found with username \(friendUsername)")
+                        return
+                    }
+
+                    let friendId = friendDoc.documentID
+                    let creatorUsername = Auth.auth().currentUser?.displayName ?? "Unknown"
+
+                    let newChatData: [String: Any] = [
+                        "members": [currentUserId, friendId],
+                        "creatorUserID": currentUserId,
+                        "creatorUsername": creatorUsername,
+                        "recipientUsernames": [friendUsername],
+                        "createdAt": Timestamp(),
+                        "directChatName": friendUsername
+                    ]
+
+                    var newChatRef: DocumentReference? = nil
+                    newChatRef = db.collection("groups").addDocument(data: newChatData) { error in
+                        if let error = error {
+                            print("Error creating chat: \(error.localizedDescription)")
+                        } else {
+                            if let documentId = newChatRef?.documentID {
+                                self.newChatId = documentId
+                            }
+                            self.isNavigatingToChat = true
                         }
-                        self.isNavigatingToChat = true
                     }
                 }
-            }
-    }
-
+        }
 
     func updateLastReadTimestamp() {
         guard let user = Auth.auth().currentUser else { return }
