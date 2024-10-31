@@ -113,8 +113,9 @@ struct GroupChatView: View {
 
                         // Message input area
                         HStack(alignment: .center) {
+                            
                             TextEditor(text: $messageText)
-                                .padding()
+                                .padding(8)
                                 .background(Color.gray.opacity(0.2))
                                 .cornerRadius(5.0)
                                 .frame(height: textEditorHeight)
@@ -140,7 +141,7 @@ struct GroupChatView: View {
                         }
                         .padding(.horizontal)
                         .padding(.bottom, 10)
-                        .padding(.bottom, keyboardHeight) // This ensures the input area moves up with the keyboard
+                        .padding(.bottom, keyboardHeight) //
                         .animation(.easeOut(duration: 0.16), value: keyboardHeight)
                     }
                     .frame(width: geometry.size.width)

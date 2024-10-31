@@ -14,88 +14,116 @@ struct PublicMessagesView: View {
     @State private var newChatId: String? = nil
     @State private var isNavigatingToChat = false
     @EnvironmentObject var notificationManager: NotificationManager
-
+    
     var body: some View {
-        NavigationStack {
-            GeometryReader { geometry in
-                ZStack {
-                    Image(.court)
-                        .resizable()
-                        .opacity(0.3)
-                        .aspectRatio(contentMode: .fill)
-                        .ignoresSafeArea()
-
-                    VStack {
-                        headerView
-
-                        ScrollViewReader { scrollView in
-                            ScrollView {
-                                VStack {
-                                    // Sort dates descending to show the latest date sections first
-                                    ForEach(groupedMessages.keys.sorted(by: >), id: \.self) { date in
-                                        Section(header: dateHeaderView(date: date)) {
-                                            ForEach(groupedMessages[date] ?? []) { message in
-                                                messageItemView(message: message)
-                                                    .id(message.id) // Attach message ID for finer scrolling
-                                            }
+        //        NavigationStack {
+        GeometryReader { geometry in
+            ZStack {
+                Image(.court)
+                    .resizable()
+                    .opacity(0.3)
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+                
+                VStack {
+                    headerView
+                    
+                    ScrollViewReader { scrollView in
+                        ScrollView {
+                            VStack {
+                                // Sort dates descending to show the latest date sections first
+                                ForEach(groupedMessages.keys.sorted(by: >), id: \.self) { date in
+                                    Section(header: dateHeaderView(date: date)) {
+                                        ForEach(groupedMessages[date] ?? []) { message in
+                                            messageItemView(message: message)
+                                                .id(message.id) // Attach message ID for finer scrolling
                                         }
-                                        .id(date) // Attach section ID for scrolling to the header
                                     }
+                                    .id(date) // Attach section ID for scrolling to the header
                                 }
                             }
-                            .padding(.horizontal)
-                            .onAppear {
-                                scrollToTop(scrollView) // Scroll to the top when the view loads
-                            }
-                            .onChange(of: groupedMessages) { 
-                                scrollToTop(scrollView) // Scroll to the top when new messages arrive
-                            }
-                            .onReceive(NotificationCenter.default.publisher(for: .scrollToTop)) { _ in
-                                scrollToTop(scrollView) // Scroll to the top when receiving the notification
-                            }
-                            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                                scrollToTop(scrollView) // Scroll to the top when the keyboard shows
-                            }
-                            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                                scrollToTop(scrollView) // Scroll to the top when the keyboard hides
-                            }
                         }
+                        .padding(.horizontal)
+                        .onAppear {
+                            scrollToTop(scrollView) // Scroll to the top when the view loads
+                        }
+                        .onChange(of: groupedMessages) {
+                            scrollToTop(scrollView) // Scroll to the top when new messages arrive
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: .scrollToTop)) { _ in
+                            scrollToTop(scrollView) // Scroll to the top when receiving the notification
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                            scrollToTop(scrollView) // Scroll to the top when the keyboard shows
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                            scrollToTop(scrollView) // Scroll to the top when the keyboard hides
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    HStack(alignment: .center) {
+                 
+                            TextEditor(text: $message)
+                                .padding(8)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(5.0)
+                                .frame(height: textEditorHeight)
+                                .onChange(of: message) {
+                                    adjustTextEditorHeight()
+                                }
+                        
 
-                        Spacer()
+                        Button(action: sendMessage) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .resizable()
+                                .frame(width: 40, height: 40)
+                                .foregroundColor(.white)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                        }
+                        .padding(.leading, 10)
+                        .disabled(message.isEmpty)
+                        .frame(height: textEditorHeight)
 
-                        messageInputView
-                            .padding(.bottom, keyboardHeight)
-                            .animation(.easeOut(duration: 0.16), value: keyboardHeight)
                     }
-                    .ignoresSafeArea(.keyboard, edges: .bottom)
-                    .onAppear {
-                        fetchMessages()
-                        fetchCurrentUser()
-                        fetchFriends()
-                        updateLastReadTimestamp()
-                        resetNotificationCount()
-                        subscribeToKeyboardEvents()
-                    }
-                    .onDisappear {
-                        unsubscribeFromKeyboardEvents()
-                    }
-                    .navigationTitle("Public Messages")
-
-                    if showToast {
-                        toastView
-                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 10)
+                    .padding(.bottom, keyboardHeight)
+                    .animation(.easeOut(duration: 0.16), value: keyboardHeight)
+                }
+                .frame(width: geometry.size.width)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+                
+                .onAppear {
+                    fetchMessages()
+                    fetchCurrentUser()
+                    fetchFriends()
+                    updateLastReadTimestamp()
+                    resetNotificationCount()
+                    subscribeToKeyboardEvents()
+                }
+                .onDisappear {
+                    unsubscribeFromKeyboardEvents()
+                }
+                .navigationTitle("Public Messages")
+                
+                if showToast {
+                    toastView
                 }
             }
-            .navigationDestination(isPresented: $isNavigatingToChat) {
-                if let groupId = newChatId {
-                    GroupChatView(groupId: groupId)
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationDestination(isPresented: $isNavigatingToChat) {
+            if let groupId = newChatId {
+                GroupChatView(groupId: groupId)
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        
         .navigationViewStyle(StackNavigationViewStyle())
     }
-
+//}
     // MARK: - Helper Methods
 
 
@@ -114,7 +142,7 @@ struct PublicMessagesView: View {
     private func subscribeToKeyboardEvents() {
         NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
             if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                self.keyboardHeight = keyboardFrame.height - 160
+                self.keyboardHeight = keyboardFrame.height - 40
                 print("Debug: Keyboard will show. Height: \(self.keyboardHeight)")
             }
         }
@@ -156,35 +184,9 @@ struct PublicMessagesView: View {
         }
     }
 
-    var messageInputView: some View {
-        HStack(alignment: .center) {
-            VStack {
-                TextEditor(text: $message)
-                    .padding(8)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(5.0)
-                    .frame(height: textEditorHeight)
-                    .onChange(of: message) {
-                        adjustTextEditorHeight()
-                    }
-            }
+  
 
-            Button(action: sendMessage) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .resizable()
-                    .frame(width: 40, height: 40)
-                    .foregroundColor(.white)
-                    .background(Color.blue)
-                    .clipShape(Circle())
-            }
-            .padding(.leading, 10)
-            .disabled(message.isEmpty)
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 10)
-        .padding(.bottom, keyboardHeight)
-        .animation(.easeOut(duration: 0.16), value: keyboardHeight)
-    }
+    
 
     var toastView: some View {
         VStack {
@@ -597,12 +599,9 @@ struct PublicMessagesView: View {
             attributes: [.font: UIFont.systemFont(ofSize: 16)],
             context: nil
         )
-
-        // Only expand the height if content exceeds current height
-        let newHeight = max(50, min(estimatedSize.height + 20, 150))
-        if newHeight > textEditorHeight {
-            textEditorHeight = newHeight
-        }
+        
+        let newHeight = max(80, min(estimatedSize.height + 30, 150))
+        textEditorHeight = newHeight
     }
 }
 
