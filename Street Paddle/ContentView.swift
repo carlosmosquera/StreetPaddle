@@ -7,17 +7,17 @@ struct ContentView: View {
 
     var body: some View {
 //        
-//        VStack{
-//            if let subscriptionGroupStatus = storeVM.subscriptionGroupStatus {
-//                         if subscriptionGroupStatus == .expired || subscriptionGroupStatus == .revoked {
-//                             Text("Welcome back, give the subscription another try.")
-//                             //display products
-//                         }
-//                     }
-//                     if storeVM.purchasedSubscriptions.isEmpty {
-//                         SubscriptionView()
-//                         
-//                     } else {
+        VStack{
+            if let subscriptionGroupStatus = storeVM.subscriptionGroupStatus {
+                         if subscriptionGroupStatus == .expired || subscriptionGroupStatus == .revoked {
+                             Text("Welcome back, give the subscription another try.")
+                             //display products
+                         }
+                     }
+                     if storeVM.purchasedSubscriptions.isEmpty {
+                         SubscriptionView()
+                         
+                     } else {
                          Group {
                              if isUserAuthenticated {
                                  MainView(isUserAuthenticated: $isUserAuthenticated)
@@ -28,10 +28,10 @@ struct ContentView: View {
                          .onAppear {
                              checkAuthentication()
                          }
-//                     }
-//          
-//        }
-//        .environmentObject(storeVM)
+                     }
+          
+        }
+        .environmentObject(storeVM)
 
     }
 
