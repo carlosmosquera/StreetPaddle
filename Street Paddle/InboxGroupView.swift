@@ -190,21 +190,46 @@ struct InboxGroupView: View {
     func displayName(for groupChat: GroupChat) -> String {
         guard let currentUserID = Auth.auth().currentUser?.uid else { return "Chat" }
         
+        // Check if the group chat has a custom name
         if let groupChatName = groupChat.groupChatName {
             return groupChatName
-        } else if let creatorUserID = groupChat.creatorUserID, let creatorUsername = groupChat.creatorUsername {
-            if creatorUserID == currentUserID {
-                if let recipientUsername = groupChat.recipientUsernames?.first {
-                    return recipientUsername
-                } else {
-                    return "Chat"
-                }
-            } else {
-                return creatorUsername
-            }
-        } else {
-            return "Chat"
         }
+        
+        // Determine the recipient user ID (excluding the current user)
+        let recipientUserID = groupChat.members.first { $0 != currentUserID }
+        
+        if let recipientID = recipientUserID {
+            // Check if the recipient's name is already cached
+            if let cachedName = userNameCache[recipientID] {
+                return cachedName
+            } else {
+                // Fetch the name from Firestore and cache it
+                let userRef = db.collection("users").document(recipientID)
+                userRef.getDocument { document, error in
+                    if let error = error {
+                        print("Error fetching user document: \(error)")
+                        return
+                    }
+                    
+                    if let document = document, document.exists,
+                       let fullName = document.data()?["name"] as? String,
+                       let username = document.data()?["username"] as? String {
+                        let displayName = "\(fullName) (\(username))"
+                        userNameCache[recipientID] = displayName
+                        
+                        // Trigger a UI update if needed
+                        DispatchQueue.main.async {
+                            chatManager.objectWillChange.send()
+                        }
+                    }
+                }
+                
+                // Return a placeholder while fetching
+                return "Loading..."
+            }
+        }
+        
+        return "Chat"
     }
 
     // Computed property for filtered group chats
