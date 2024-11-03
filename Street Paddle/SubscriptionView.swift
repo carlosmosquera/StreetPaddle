@@ -30,10 +30,12 @@ struct SubscriptionView: View {
                     .offset(y: -40)
                 
                 
-                // Add the subscription requirement note
-                Text("A yearly subscription is required to access the content of the app.")
-                    .font(.title)
-                    .padding(.top, 10)
+          
+                    Text("A yearly subscription is required to access the content of the app.")
+                        .font(.system(size: 13, weight: .medium)) // Adjust the size as needed
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20) // Add horizontal
+                        .padding(.top, 10)
 
                 Group {
                     Section("See you at the pop tennis courts!") {
