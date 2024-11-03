@@ -211,6 +211,7 @@ struct MainView: View {
                 stopListeningForUnreadAnnouncements() // Stop listening when view disappears
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
     func listenForUnreadMessages() {
         guard let user = Auth.auth().currentUser else { return }

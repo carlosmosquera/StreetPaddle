@@ -15,149 +15,149 @@ struct GroupChatView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                Image(.court)
-                    .resizable()
-                    .opacity(0.3)
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
+            VStack(spacing: 0) {
+                // Header with user names
+                VStack {
+                    HStack {
+                        Text(userNames.joined(separator: ", "))
+                            .font(.headline)
+                            .padding(10)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(10)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal)
+                    .background(Color.gray.opacity(0.05))
+                    .cornerRadius(10)
+                    .padding(.top, 5)
+                }
+                .frame(maxWidth: .infinity, alignment: .top)
+                .background(Color.clear)
+
+                Spacer()
 
                 VStack(spacing: 0) {
-                    // Fixed Header with user names
-                    VStack {
-                        HStack {
-                            Text(userNames.joined(separator: ", "))
-                                .font(.headline)
-                                .padding(10)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(10)
-                                .multilineTextAlignment(.center)
+                    ScrollViewReader { scrollView in
+                        ScrollView {
+                            VStack(alignment: .leading) {
+                                ForEach(groupMessages) { message in
+                                    VStack(alignment: .leading) {
+                                        HStack {
+                                            if message.senderId == Auth.auth().currentUser?.uid {
+                                                Spacer()
+                                                VStack(alignment: .trailing) {
+                                                    Text(message.text)
+                                                        .padding()
+                                                        .background(Color.blue)
+                                                        .cornerRadius(8)
+                                                        .foregroundColor(.white)
+                                                        .id(message.id)
+
+                                                    Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
+                                                        .font(.caption)
+                                                        .foregroundColor(.gray)
+                                                        .padding(.top, 2)
+
+                                                    Text(message.senderName ?? "Unknown")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.gray)
+                                                }
+                                            } else {
+                                                VStack(alignment: .leading) {
+                                                    Text(message.text)
+                                                        .padding()
+                                                        .background(Color.gray.opacity(0.2))
+                                                        .cornerRadius(8)
+                                                        .id(message.id)
+
+                                                    Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
+                                                        .font(.caption)
+                                                        .foregroundColor(.gray)
+                                                        .padding(.top, 2)
+
+                                                    Text(message.senderName ?? "Unknown")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.gray)
+                                                }
+                                                Spacer()
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                }
+                            }
+                            .padding(.top, 10)
                         }
-                        .padding(.horizontal)
-                        .background(Color.gray.opacity(0.05))
-                        .cornerRadius(10)
-                        .padding(.top, 5) // Adjust this value to position the bar closer to the top
+                        .onChange(of: groupMessages) {
+                            scrollToEnd(scrollView)
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                            scrollToEnd(scrollView)
+                        }
+                        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                            scrollToEnd(scrollView)
+                        }
                     }
-                    .frame(maxWidth: .infinity, alignment: .top)
-                    .background(Color.clear)
-                    .zIndex(1)
 
                     Spacer()
 
-                    VStack(spacing: 0) {
-                        ScrollViewReader { scrollView in
-                            ScrollView {
-                                VStack(alignment: .leading) {
-                                    ForEach(groupMessages) { message in
-                                        VStack(alignment: .leading) {
-                                            HStack {
-                                                if message.senderId == Auth.auth().currentUser?.uid {
-                                                    Spacer()
-                                                    VStack(alignment: .trailing) {
-                                                        Text(message.text)
-                                                            .padding()
-                                                            .background(Color.blue)
-                                                            .cornerRadius(8)
-                                                            .foregroundColor(.white)
-                                                            .id(message.id)
-                                                        
-                                                        Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
-                                                            .font(.caption)
-                                                            .foregroundColor(.gray)
-                                                            .padding(.top, 2)
-                                                        
-                                                        Text(message.senderName ?? "Unknown")
-                                                            .font(.caption2)
-                                                            .foregroundColor(.gray)
-                                                    }
-                                                } else {
-                                                    VStack(alignment: .leading) {
-                                                        Text(message.text)
-                                                            .padding()
-                                                            .background(Color.gray.opacity(0.2))
-                                                            .cornerRadius(8)
-                                                            .id(message.id)
-                                                        
-                                                        Text(message.timestamp.dateValue(), formatter: messageTimeFormatter)
-                                                            .font(.caption)
-                                                            .foregroundColor(.gray)
-                                                            .padding(.top, 2)
-                                                        
-                                                        Text(message.senderName ?? "Unknown")
-                                                            .font(.caption2)
-                                                            .foregroundColor(.gray)
-                                                    }
-                                                    Spacer()
-                                                }
-                                            }
-                                            .padding(.horizontal)
-                                        }
-                                    }
-                                }
-                                .padding(.top, 10)
-                            }
-                            .onChange(of: groupMessages) {
-                                scrollToEnd(scrollView)
-                            }
-
-                            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                                scrollToEnd(scrollView)
-                            }
-                            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                                scrollToEnd(scrollView)
-                            }
-                        }
-
-                        Spacer()
-
-                        // Message input area
-                        HStack(alignment: .center) {
-                            
-                            TextEditor(text: $messageText)
-                                .padding(8)
-                                .background(Color.gray.opacity(0.2))
-                                .cornerRadius(5.0)
-                                .frame(height: textEditorHeight)
-                                .onChange(of: messageText) {
-                                    adjustTextEditorHeight()
-                                }
-
-                            Button(action: {
-                                sendMessage()
-                                updateLastReadTimestamp(for: groupId) // Update last read timestamp after sending a message
-                                updateUnreadCount(for: groupId, unreadCount: 0) // Reset unread count to 0 after sending a message
-                            }) {
-                                Image(systemName: "arrow.up.circle.fill")
-                                    .resizable()
-                                    .frame(width: 40, height: 40)
-                                    .foregroundColor(.white)
-                                    .background(Color.blue)
-                                    .clipShape(Circle())
-                            }
-                            .padding(.trailing, 10)
-                            .disabled(messageText.isEmpty)
+                    // Message input area
+                    HStack(alignment: .center) {
+                        TextEditor(text: $messageText)
+                            .padding(8)
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(5.0)
                             .frame(height: textEditorHeight)
+                            .onChange(of: messageText) {
+                                adjustTextEditorHeight()
+                            }
+
+                        Button(action: {
+                            sendMessage()
+                            updateLastReadTimestamp(for: groupId) // Update last read timestamp after sending a message
+                            updateUnreadCount(for: groupId, unreadCount: 0) // Reset unread count to 0 after sending a message
+                        }) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .resizable()
+                                .frame(width: 40, height: 40)
+                                .foregroundColor(.white)
+                                .background(Color.blue)
+                                .clipShape(Circle())
                         }
-                        .padding(.horizontal)
-                        .padding(.bottom, 10)
-                        .padding(.bottom, keyboardHeight) //
-                        .animation(.easeOut(duration: 0.16), value: keyboardHeight)
+                        .padding(.trailing, 10)
+                        .disabled(messageText.isEmpty)
+                        .frame(height: textEditorHeight)
                     }
-                    .frame(width: geometry.size.width)
-                    .ignoresSafeArea(.keyboard, edges: .bottom)
+                    .padding(.horizontal)
+                    .padding(.bottom, 10)
+                    .padding(.bottom, keyboardHeight)
+                    .animation(.easeOut(duration: 0.16), value: keyboardHeight)
                 }
-                .onAppear {
-                    fetchGroupData()
-                    subscribeToKeyboardEvents()
-                    updateLastReadTimestamp(for: groupId)  // Mark messages as read
-                }
-                .onDisappear {
-                    unsubscribeFromKeyboardEvents()
-                }
+                .frame(width: geometry.size.width)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+            }
+            .background(
+                Image("court")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
+                    .opacity(0.3)
+//                    .ignoresSafeArea()
+            )
+            .onAppear {
+                fetchGroupData()
+                subscribeToKeyboardEvents()
+                updateLastReadTimestamp(for: groupId)  // Mark messages as read
+            }
+            .onDisappear {
+                unsubscribeFromKeyboardEvents()
             }
         }
     }
+
+
 
     func updateLastReadTimestamp(for groupChatId: String) {
         guard let userId = Auth.auth().currentUser?.uid else { return }

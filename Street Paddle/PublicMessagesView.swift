@@ -7,7 +7,7 @@ struct PublicMessagesView: View {
     @State private var groupedMessages = [String: [PublicMessage]]()
     @State private var currentUsername: String = ""
     @State private var friends = Set<String>()
-    @State private var textEditorHeight: CGFloat = 50
+    @State private var textEditorHeight: CGFloat = 60
     @State private var keyboardHeight: CGFloat = 0
     @State private var showToast = false
     @State private var toastMessage = ""
@@ -18,87 +18,83 @@ struct PublicMessagesView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                Image(.court)
-                    .resizable()
-                    .opacity(0.3)
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
+            VStack(spacing: 0) {
+                headerView
                 
-                VStack {
-                    headerView
-                    
-                    ScrollViewReader { scrollView in
-                        ScrollView {
-                            VStack {
-                                ForEach(groupedMessages.keys.sorted(by: >), id: \.self) { date in
-                                    Section(header: dateHeaderView(date: date)) {
-                                        ForEach(groupedMessages[date] ?? []) { message in
-                                            messageItemView(message: message)
-                                                .id(message.id)
-                                        }
+                ScrollViewReader { scrollView in
+                    ScrollView {
+                        VStack {
+                            ForEach(groupedMessages.keys.sorted(by: >), id: \ .self) { date in
+                                Section(header: dateHeaderView(date: date)) {
+                                    ForEach(groupedMessages[date] ?? []) { message in
+                                        messageItemView(message: message)
+                                            .id(message.id)
                                     }
-                                    .id(date)
                                 }
+                                .id(date)
                             }
                         }
-                        .padding(.horizontal)
-                        .onAppear {
-                            scrollToTop(scrollView)
-                        }
-                        .onChange(of: groupedMessages) {
-                            scrollToTop(scrollView)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(alignment: .center) {
-                        TextEditor(text: $message)
-                            .padding(8)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(5.0)
-                            .frame(height: textEditorHeight)
-                            .onChange(of: message) {
-                                adjustTextEditorHeight()
-                            }
-                        
-                        Button(action: sendMessage) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .resizable()
-                                .frame(width: 40, height: 40)
-                                .foregroundColor(.white)
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                        }
-                        .padding(.leading, 10)
-                        .disabled(message.isEmpty)
-                        .frame(height: textEditorHeight)
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, 10)
-                    .padding(.bottom, keyboardHeight)
-                    .animation(.easeOut(duration: 0.16), value: keyboardHeight)
+                    .onAppear {
+                        scrollToTop(scrollView)
+                    }
+                    .onChange(of: groupedMessages) {
+                        scrollToTop(scrollView)
+                    }
                 }
-                .frame(width: geometry.size.width)
-                .ignoresSafeArea(.keyboard, edges: .bottom)
-                .onAppear {
-                    fetchMessages()
-                    fetchCurrentUser()
-                    fetchFriends()
-                    updateLastReadTimestamp()
-                    resetNotificationCount()
-                    subscribeToKeyboardEvents()
-                }
-                .onDisappear {
-                    unsubscribeFromKeyboardEvents()
-                }
-                .navigationTitle("Public Messages")
                 
-                if showToast {
-                    toastView
+                Spacer()
+                
+                HStack(alignment: .center) {
+                    TextEditor(text: $message)
+                        .padding(8)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(5.0)
+                        .frame(height: textEditorHeight)
+                        .onChange(of: message) {
+                            adjustTextEditorHeight()
+                        }
+                    
+                    Button(action: sendMessage) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .resizable()
+                            .frame(width: 40, height: 40)
+                            .foregroundColor(.white)
+                            .background(Color.blue)
+                            .clipShape(Circle())
+                    }
+                    .padding(.leading, 10)
+                    .disabled(message.isEmpty)
+                    .frame(height: textEditorHeight)
                 }
+                .padding(.horizontal)
+                .padding(.bottom, 10)
+                .padding(.bottom, keyboardHeight)
+                .animation(.easeOut(duration: 0.16), value: keyboardHeight)
             }
+            .frame(width: geometry.size.width)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .background(
+                Image("court")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
+                    .opacity(0.3)
+            )
+            .onAppear {
+                fetchMessages()
+                fetchCurrentUser()
+                fetchFriends()
+                updateLastReadTimestamp()
+                resetNotificationCount()
+                subscribeToKeyboardEvents()
+            }
+            .onDisappear {
+                unsubscribeFromKeyboardEvents()
+            }
+            .navigationTitle("Public Messages")
         }
         .background(
             NavigationLink(
@@ -110,102 +106,58 @@ struct PublicMessagesView: View {
         )
         .navigationBarTitleDisplayMode(.inline)
     }
-//}
     // MARK: - Helper Methods
 
 
     private func scrollToTop(_ scrollView: ScrollViewProxy) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if let firstSectionKey = groupedMessages.keys.sorted(by: >).first {
-                withAnimation {
-                    scrollView.scrollTo(firstSectionKey, anchor: .top)
-                }
-            }
-        }
-    }
+           DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+               if let firstSectionKey = groupedMessages.keys.sorted(by: >).first {
+                   withAnimation {
+                       scrollView.scrollTo(firstSectionKey, anchor: .top)
+                   }
+               }
+           }
+       }
 
+       private func subscribeToKeyboardEvents() {
+           NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
+               if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                   self.keyboardHeight = keyboardFrame.height - 40
+                   print("Debug: Keyboard will show. Height: \(self.keyboardHeight)")
+               }
+           }
 
+           NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
+               self.keyboardHeight = 0
+               print("Debug: Keyboard will hide.")
+           }
+       }
 
-    private func subscribeToKeyboardEvents() {
-        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notification in
-            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
-                self.keyboardHeight = keyboardFrame.height - 40
-                print("Debug: Keyboard will show. Height: \(self.keyboardHeight)")
-            }
-        }
+       private func unsubscribeFromKeyboardEvents() {
+           NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+           NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+       }
 
-        NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
-            self.keyboardHeight = 0
-            print("Debug: Keyboard will hide.")
-        }
-    }
-
-    private func unsubscribeFromKeyboardEvents() {
-        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
-    }
-
-
-
-
-
-    var headerView: some View {
-        Text("📣 Announcements - Use Direct Messages for Private Responses.")
-            .font(.subheadline)
-            .foregroundColor(.white)
-            .padding(.horizontal)
-            .background(Color.blue.opacity(0.8))
-            .cornerRadius(10)
-            .padding(.vertical, 10)
-    }
-
-    var messagesListView: some View {
-        VStack {
-            ForEach(groupedMessages.keys.sorted(by: >), id: \.self) { date in
-                Section(header: dateHeaderView(date: date)) {
-                    ForEach(groupedMessages[date] ?? []) { message in
-                        messageItemView(message: message)
-                    }
-                }
-            }
-        }
-    }
-
-  
-
+       var headerView: some View {
+           Text("📣 Announcements - Use Direct Messages for Private Responses.")
+               .font(.subheadline)
+               .foregroundColor(.white)
+               .padding(.horizontal)
+               .background(Color.blue.opacity(0.8))
+               .cornerRadius(10)
+               .padding(.vertical, 10)
+       }
     
-
-    var toastView: some View {
-        VStack {
-            Spacer()
-            Text(toastMessage)
-                .font(.body)
-                .padding()
-                .background(Color.black.opacity(0.8))
-                .foregroundColor(.white)
-                .cornerRadius(10)
-                .padding(.bottom, 50)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        withAnimation { showToast = false }
-                    }
-                }
-        }
-        .zIndex(1)
-    }
-
-    // MARK: - Helper Views and Functions
     func dateHeaderView(date: String) -> some View {
-        Text(date)
-            .font(.headline)
-            .foregroundColor(.white)
-            .padding(.horizontal)
-            .background(Color.green.opacity(0.9))
-            .cornerRadius(10)
-    }
+           Text(date)
+               .font(.headline)
+               .foregroundColor(.white)
+               .padding(.horizontal)
+               .background(Color.green.opacity(0.9))
+               .cornerRadius(10)
+       }
 
-    func messageItemView(message: PublicMessage) -> some View {
+       func messageItemView(message: PublicMessage) -> some View {
            HStack(alignment: .top) {
                Image(systemName: "person.circle.fill")
                    .resizable()
@@ -233,7 +185,6 @@ struct PublicMessagesView: View {
                                .fontWeight(.bold)
                                .foregroundColor(.gray)
                        }
-
                        Spacer()
                        Text(message.timestamp.dateValue(), formatter: timeFormatter)
                            .font(.caption2)
@@ -258,6 +209,23 @@ struct PublicMessagesView: View {
            .cornerRadius(8)
            .padding(.horizontal)
        }
+    
+    private func adjustTextEditorHeight() {
+         let widthConstraint = UIScreen.main.bounds.width - 100 // Adjust based on padding or parent view constraints
+         let estimatedSize = NSString(string: message).boundingRect(
+             with: CGSize(width: widthConstraint, height: .infinity),
+             options: .usesLineFragmentOrigin,
+             attributes: [.font: UIFont.systemFont(ofSize: 16)],
+             context: nil
+         )
+         
+         // Only adjust height if the text needs more space horizontally
+         if estimatedSize.width > widthConstraint {
+             let newHeight = max(80, min(estimatedSize.height + 30, 150))
+             textEditorHeight = newHeight
+         }
+     }
+    
     func openOrCreateChat(with friendUsername: String) {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
@@ -533,21 +501,7 @@ struct PublicMessagesView: View {
     // MARK: - Keyboard Handling
 
 
-    private func adjustTextEditorHeight() {
-        let widthConstraint = UIScreen.main.bounds.width - 100 // Adjust based on padding or parent view constraints
-        let estimatedSize = NSString(string: message).boundingRect(
-            with: CGSize(width: widthConstraint, height: .infinity),
-            options: .usesLineFragmentOrigin,
-            attributes: [.font: UIFont.systemFont(ofSize: 16)],
-            context: nil
-        )
-        
-        // Only adjust height if the text needs more space horizontally
-        if estimatedSize.width > widthConstraint {
-            let newHeight = max(80, min(estimatedSize.height + 30, 150))
-            textEditorHeight = newHeight
-        }
-    }
+
 
 }
 

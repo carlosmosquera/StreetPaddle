@@ -182,7 +182,6 @@
 				278FEB9D2CD190E600937C85 /* StoreVM.swift */,
 				278FEB9F2CD1925F00937C85 /* SubscriptionView.swift */,
 				279170182C5A952300EB068B /* Street_PaddleApp.swift */,
-				2791701A2C5A952300EB068B /* ContentView.swift */,
 				279170622C5A9BA400EB068B /* MainView.swift */,
 				27DADF232CADDAA20035667C /* NotificationsManager.swift */,
 				279170642C5A9BBF00EB068B /* LoginView.swift */,
@@ -208,6 +207,7 @@
 		2791701E2C5A952400EB068B /* Preview Content */ = {
 			isa = PBXGroup;
 			children = (
+				2791701A2C5A952300EB068B /* ContentView.swift */,
 				2791701F2C5A952400EB068B /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
