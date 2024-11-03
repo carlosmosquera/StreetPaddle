@@ -178,7 +178,7 @@ struct MainView: View {
                     
                     HStack {
                         Text("📹")
-                        Link("Live Cam", destination: URL(string: "https://hdontap.com/stream/956353/venice-beach-live/")!)
+                        Link("Live Cam", destination: URL(string: "https://hdontap.com/stream/956353/venice-beach-live/cdf")!)
                     }
                     .font(.headline)
                     .foregroundColor(.white)

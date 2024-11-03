@@ -8,6 +8,9 @@
 import SwiftUI
 import StoreKit
 
+import SwiftUI
+import StoreKit
+
 struct SubscriptionView: View {
     @EnvironmentObject var storeVM: StoreVM
     @State var isPurchased = false
@@ -24,7 +27,13 @@ struct SubscriptionView: View {
             VStack {
                 Text("STREET PADDLE")
                     .font(.custom("Longhaul", size: 45))
-                    .offset(y: -80)
+                    .offset(y: -40)
+                
+                
+                // Add the subscription requirement note
+                Text("A yearly subscription is required to access the content of the app.")
+                    .font(.title)
+                    .padding(.top, 10)
 
                 Group {
                     Section("See you at the pop tennis courts!") {
@@ -48,6 +57,22 @@ struct SubscriptionView: View {
                         }
                     }
                 }
+
+           
+
+                // Privacy Policy link
+                HStack {
+                    Link("Privacy Policy", destination: URL(string: "https://www.termsfeed.com/live/f0c1ded7-480c-46b6-83b1-5d20fec86a53")!)
+                        .foregroundColor(.blue)
+                    
+                    Text("|")
+                        .foregroundColor(.gray)
+                    
+                    Link("Terms & Conditions", destination: URL(string: "https://streetpaddle.co/terms-conditions/")!)
+                        .foregroundColor(.blue)
+                }
+                .padding(.top, 20)
+
                 
                 // Add the endless tennis game view here
                 EndlessTennisGameView()
