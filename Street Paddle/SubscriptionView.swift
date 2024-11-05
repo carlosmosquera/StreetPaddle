@@ -1,13 +1,3 @@
-//
-//  SubscriptionView.swift
-//  storekit2-youtube-demo-part-2
-//
-//  Created by Paulo Orquillo on 2/03/23.
-//
-
-import SwiftUI
-import StoreKit
-
 import SwiftUI
 import StoreKit
 
@@ -18,7 +8,7 @@ struct SubscriptionView: View {
     var body: some View {
         ZStack {
             // Background styling
-            Image("court") // Make sure "court" image exists in your assets
+            Image("court")
                 .resizable()
                 .opacity(0.3)
                 .aspectRatio(contentMode: .fill)
@@ -29,13 +19,11 @@ struct SubscriptionView: View {
                     .font(.custom("Longhaul", size: 45))
                     .offset(y: -40)
                 
-                
-          
-                    Text("A yearly subscription is required to access the content of the app.")
-                        .font(.system(size: 13, weight: .medium)) // Adjust the size as needed
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20) // Add horizontal
-                        .padding(.top, 10)
+                Text("A yearly subscription is required to access the content of the app.")
+                    .font(.system(size: 13, weight: .medium))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
 
                 Group {
                     Section("See you at the pop tennis courts!") {
@@ -60,8 +48,6 @@ struct SubscriptionView: View {
                     }
                 }
 
-           
-
                 // Privacy Policy link
                 HStack {
                     Link("Privacy Policy", destination: URL(string: "https://www.termsfeed.com/live/f0c1ded7-480c-46b6-83b1-5d20fec86a53")!)
@@ -74,11 +60,19 @@ struct SubscriptionView: View {
                         .foregroundColor(.blue)
                 }
                 .padding(.top, 20)
-
+                
+                // Restore Purchases link
+                Button("Restore Purchases") {
+                    Task {
+                        await storeVM.restorePurchases()
+                    }
+                }
+                .foregroundColor(.blue)
+                .padding(.top, 10)
                 
                 // Add the endless tennis game view here
                 EndlessTennisGameView()
-                    .frame(height: 300) // Adjust the frame as needed
+                    .frame(height: 300)
                     .padding(.top, 20)
             }
         }
@@ -94,6 +88,7 @@ struct SubscriptionView: View {
         }
     }
 }
+
 
 // Simple endless tennis game view
 struct EndlessTennisGameView: View {
