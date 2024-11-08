@@ -26,7 +26,7 @@ struct MainView: View {
                 
                 VStack {
                     VStack {
-                        NavigationLink(destination: ProfileView(userId: Auth.auth().currentUser?.uid ?? "")) {
+                        NavigationLink(destination: ProfileView(isUserAuthenticated: $isUserAuthenticated, userId: Auth.auth().currentUser?.uid ?? "")) {
                             if let profileImage = profileImage {
                                 Image(uiImage: profileImage)
                                     .resizable()
@@ -41,6 +41,8 @@ struct MainView: View {
                                     .frame(width: 50, height: 50)
                             }
                         }
+
+
                         
                         HStack {
                             Spacer()

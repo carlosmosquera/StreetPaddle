@@ -9,15 +9,15 @@ struct ProfileView: View {
     @State private var relationshipStatus: String = ""
     @State private var playerLevel: String = ""
     @State private var location: String = ""
-    @State private var handedness: String = "" // New state for handedness
+    @State private var handedness: String = ""
     @State private var isEditing: Bool = false
-    @State private var isCurrentUser: Bool = false // Track if viewing own profile
-    
+    @State private var isCurrentUser: Bool = false
     @State private var profileImage: UIImage? = nil
     @State private var showImagePicker: Bool = false
     @State private var imageUrl: String = ""
-    
+    @Binding var isUserAuthenticated: Bool // Binding to manage authentication state
     var userId: String
+    @State private var showDeleteConfirmation: Bool = false // State variable for alert
     
     var body: some View {
         VStack {
@@ -29,7 +29,7 @@ struct ProfileView: View {
             if let profileImage = profileImage {
                 Image(uiImage: profileImage)
                     .resizable()
-                    .scaledToFit() // Use scaledToFit to maintain aspect ratio
+                    .scaledToFit()
                     .frame(width: 150, height: 150)
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.gray, lineWidth: 4))
@@ -38,19 +38,13 @@ struct ProfileView: View {
             } else {
                 Image(systemName: "person.circle.fill")
                     .resizable()
-                    .scaledToFit() // Use scaledToFit to maintain aspect ratio
+                    .scaledToFit()
                     .frame(width: 150, height: 150)
                     .clipShape(Circle())
                     .padding()
             }
 
-            // Only allow changing the profile picture if it's the current user's profile
-            if isCurrentUser {
-                Button("Change Profile Picture") {
-                    showImagePicker.toggle()
-                }
-            }
-
+            // Profile Information
             Form {
                 Section(header: Text("Basic Information")) {
                     Text("Name: \(name)")
@@ -58,11 +52,11 @@ struct ProfileView: View {
                 }
 
                 Section(header: Text("Information")) {
-                    if isEditing && isCurrentUser { // Only allow editing if the current user is viewing their own profile
+                    if isEditing && isCurrentUser {
                         TextField("Relationship Status", text: $relationshipStatus)
                         TextField("Player Level", text: $playerLevel)
                         TextField("Location", text: $location)
-                        Picker("Handedness", selection: $handedness) { // Picker for handedness
+                        Picker("Handedness", selection: $handedness) {
                             Text("Right-handed").tag("Right-handed")
                             Text("Left-handed").tag("Left-handed")
                         }
@@ -75,13 +69,33 @@ struct ProfileView: View {
                     }
                 }
 
-                // Allow editing only if viewing own profile
+                // Edit Profile Button
                 if isCurrentUser {
                     Button(isEditing ? "Save" : "Edit") {
                         if isEditing {
                             saveProfileData()
                         }
                         isEditing.toggle()
+                    }
+                }
+
+                // Delete Account Button
+                if isCurrentUser {
+                    Button(action: {
+                        showDeleteConfirmation = true // Show confirmation alert
+                    }) {
+                        Text("Delete Account")
+                            .foregroundColor(.red)
+                    }
+                    .alert(isPresented: $showDeleteConfirmation) {
+                        Alert(
+                            title: Text("Delete Account"),
+                            message: Text("Are you sure you want to delete your account? This action cannot be undone."),
+                            primaryButton: .destructive(Text("Delete")) {
+                                deleteAccount() // Call delete function on confirmation
+                            },
+                            secondaryButton: .cancel()
+                        )
                     }
                 }
             }
@@ -103,7 +117,7 @@ struct ProfileView: View {
                 self.relationshipStatus = data?["relationshipStatus"] as? String ?? ""
                 self.playerLevel = data?["playerLevel"] as? String ?? ""
                 self.location = data?["location"] as? String ?? ""
-                self.handedness = data?["handedness"] as? String ?? "" // Fetch handedness
+                self.handedness = data?["handedness"] as? String ?? ""
                 self.imageUrl = data?["profileImageUrl"] as? String ?? ""
                 loadImageFromUrl(url: imageUrl)
             }
@@ -124,7 +138,7 @@ struct ProfileView: View {
             "relationshipStatus": relationshipStatus,
             "playerLevel": playerLevel,
             "location": location,
-            "handedness": handedness, // Save handedness
+            "handedness": handedness,
             "profileImageUrl": imageUrl
         ], merge: true) { error in
             if let error = error {
@@ -133,10 +147,31 @@ struct ProfileView: View {
         }
     }
     
-    // Upload the image to Firebase Storage and store the URL in Firestore
+    // Delete Account
+    func deleteAccount() {
+        guard let currentUser = Auth.auth().currentUser else { return }
+
+        // Deleting the user's account
+        currentUser.delete { error in
+            if let error = error {
+                print("Error deleting account: \(error.localizedDescription)")
+            } else {
+                // Log out the user after successful account deletion
+                do {
+                    try Auth.auth().signOut()
+                    isUserAuthenticated = false // Update the authentication state
+                    // Navigate to LoginView or handle navigation here
+                } catch {
+                    print("Error signing out: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    // Upload the image to Firebase Storage
     func uploadImageToStorage(image: UIImage) {
-        let resizedImage = image.resized(toWidth: 1024) // Resize width to 1024, maintaining aspect ratio
-        
+        let resizedImage = image.resized(toWidth: 1024)
+
         guard let imageData = resizedImage.jpegData(compressionQuality: 0.8) else { return }
         
         let storageRef = Storage.storage().reference().child("profileImages/\(userId).jpg")
@@ -155,13 +190,13 @@ struct ProfileView: View {
                 }
                 if let url = url {
                     self.imageUrl = url.absoluteString
-                    self.saveProfileData() // Save the image URL along with other data
+                    self.saveProfileData()
                 }
             }
         }
     }
 
-    // Load the image from Firebase Storage using the URL
+    // Load the image from Firebase Storage
     func loadImageFromUrl(url: String) {
         guard !url.isEmpty else { return }
         let storageRef = Storage.storage().reference(forURL: url)

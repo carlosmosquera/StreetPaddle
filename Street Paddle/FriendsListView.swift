@@ -3,7 +3,7 @@ import FirebaseAuth
 import FirebaseFirestore
 
 struct FriendsListView: View {
-    @State private var friends = [User]()  // Store both name and username
+    @State private var friends = [User]()
     @State private var isNavigatingToChat = false
     @State private var newChatId: String?
     @State private var selectedFriend: String?
@@ -14,11 +14,21 @@ struct FriendsListView: View {
     @State private var suggestedUsers = [User]()
     @State private var isAddingFriend = false
 
+    @State private var isUserAuthenticated = false  // Declare the variable
+
+    // Initializer to check if the user is authenticated
+    init() {
+        if Auth.auth().currentUser != nil {
+            isUserAuthenticated = true
+        } else {
+            isUserAuthenticated = false
+        }
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 VStack {
-                    // Search bar for adding new friends
                     TextField("Search for users or names...", text: $searchText)
                         .padding(10)
                         .background(Color(.systemGray6))
@@ -29,7 +39,6 @@ struct FriendsListView: View {
                             searchUsers(query: newValue)
                         }
 
-                    // List of suggested users
                     if !suggestedUsers.isEmpty {
                         List(suggestedUsers, id: \.username) { user in
                             Text("\(user.name) (\(user.username))")
@@ -42,7 +51,6 @@ struct FriendsListView: View {
                     List {
                         ForEach(friends, id: \.username) { friend in
                             HStack {
-                                // Button for viewing profile next to the name
                                 Button(action: {
                                     fetchFriendUserId(for: friend.username) { userId in
                                         self.selectedFriendId = userId
@@ -55,7 +63,6 @@ struct FriendsListView: View {
                                 .buttonStyle(PlainButtonStyle())
                                 .padding(.trailing, 8)
 
-                                // Text for name and username that navigates to chat
                                 Button(action: {
                                     selectedFriend = friend.username
                                     openOrCreateChat(with: friend.username)
@@ -67,7 +74,6 @@ struct FriendsListView: View {
 
                                 Spacer()
 
-                                // Minus button for removing friend
                                 Button(action: {
                                     removeFriend(username: friend.username)
                                 }) {
@@ -83,18 +89,19 @@ struct FriendsListView: View {
                 .navigationTitle("Friends List")
                 .navigationDestination(isPresented: $isNavigatingToProfile) {
                     if let userId = selectedFriendId {
-                        ProfileView(userId: userId)
+                        ProfileView(isUserAuthenticated: $isUserAuthenticated, userId: userId)
                     }
                 }
                 .navigationDestination(isPresented: $isNavigatingToChat) {
                     if let groupId = newChatId {
                         GroupChatView(groupId: groupId)
-                            .navigationBarBackButtonHidden(true) // Hide the default back button
+                            .navigationBarBackButtonHidden(true)
                     }
                 }
             }
         }
     }
+
 
     // Other functions remain unchanged ...
 
