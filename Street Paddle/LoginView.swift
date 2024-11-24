@@ -28,7 +28,6 @@ struct LoginView: View {
                     .cornerRadius(5.0)
                     .padding([.leading, .bottom, .trailing], 20)
 
-
                 SecureField("Password", text: $password)
                     .padding()
                     .background(Color.gray.opacity(0.2))
@@ -44,7 +43,14 @@ struct LoginView: View {
                         .background(Color.blue)
                         .cornerRadius(15.0)
                 }
-                
+
+                Text("By logging in, you indicate that you have read and agree to the Terms of Conditions and Privacy Policy.")
+                    .font(.footnote)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+
                 Button(action: {
                     showSignUp.toggle()
                 }) {
