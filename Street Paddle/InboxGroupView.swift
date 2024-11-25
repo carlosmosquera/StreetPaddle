@@ -225,7 +225,7 @@ struct InboxGroupView: View {
                 }
                 
                 // Return a placeholder while fetching
-                return "Loading..."
+                return "Deleted User..."
             }
         }
         

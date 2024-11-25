@@ -151,18 +151,30 @@ struct ProfileView: View {
     func deleteAccount() {
         guard let currentUser = Auth.auth().currentUser else { return }
 
-        // Deleting the user's account
-        currentUser.delete { error in
+        // Reference to Firestore
+        let db = Firestore.firestore()
+        
+        // Deleting the user's document from Firestore
+        db.collection("users").document(currentUser.uid).delete { error in
             if let error = error {
-                print("Error deleting account: \(error.localizedDescription)")
+                print("Error deleting Firestore document: \(error.localizedDescription)")
             } else {
-                // Log out the user after successful account deletion
-                do {
-                    try Auth.auth().signOut()
-                    isUserAuthenticated = false // Update the authentication state
-                    // Navigate to LoginView or handle navigation here
-                } catch {
-                    print("Error signing out: \(error.localizedDescription)")
+                print("Firestore document successfully deleted")
+            }
+            
+            // Proceed to delete the Firebase Auth account
+            currentUser.delete { error in
+                if let error = error {
+                    print("Error deleting account: \(error.localizedDescription)")
+                } else {
+                    // Log out the user after successful account deletion
+                    do {
+                        try Auth.auth().signOut()
+                        isUserAuthenticated = false // Update the authentication state
+                        // Navigate to LoginView or handle navigation here
+                    } catch {
+                        print("Error signing out: \(error.localizedDescription)")
+                    }
                 }
             }
         }

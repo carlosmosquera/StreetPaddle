@@ -59,7 +59,7 @@ struct GroupChatView: View {
                                                         .foregroundColor(.gray)
                                                         .padding(.top, 2)
 
-                                                    Text(message.senderName ?? "Unknown")
+                                                    Text(message.senderName ?? "Deleted User")
                                                         .font(.caption2)
                                                         .foregroundColor(.gray)
                                                 }
@@ -76,7 +76,7 @@ struct GroupChatView: View {
                                                         .foregroundColor(.gray)
                                                         .padding(.top, 2)
 
-                                                    Text(message.senderName ?? "Unknown")
+                                                    Text(message.senderName ?? "Deleted User")
                                                         .font(.caption2)
                                                         .foregroundColor(.gray)
                                                 }
