@@ -19,6 +19,26 @@ struct SubscriptionView: View {
                     .font(.custom("Longhaul", size: 45))
                     .offset(y: -40)
                 
+                Text("Unlock exclusive features with a yearly subscription!")
+                    .font(.system(size: 13, weight: .medium))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+
+                Text("Benefits include:")
+                    .font(.system(size: 13, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 5)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("• Full access to all content and updates.")
+                    Text("• Tournament draws and scheduling.")
+                    Text("• Access to new features and enhancements.")
+                    Text("• Check-in at the courts. All Ad-free.")
+                }
+                .font(.system(size: 13))
+                .padding(.horizontal, 20)
+                
                 Text("A yearly subscription is required to access the content of the app.")
                     .font(.system(size: 13, weight: .medium))
                     .multilineTextAlignment(.center)
