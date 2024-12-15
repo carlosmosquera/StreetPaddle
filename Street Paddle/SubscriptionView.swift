@@ -25,6 +25,17 @@ struct SubscriptionView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
 
+                Text("Subscription Details:")
+                    .font(.system(size: 13, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 5)
+
+                Text("14-day free trial, then $12.99/year.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.green)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 2)
+
                 Text("Benefits include:")
                     .font(.system(size: 13, weight: .bold))
                     .multilineTextAlignment(.center)
@@ -54,8 +65,12 @@ struct SubscriptionView: View {
                                 }
                             }) {
                                 VStack {
+                                    Text(storeVM.subscriptionDescription)
+                                        .font(.system(size: 12))
+                                        .padding(.bottom, 5)
                                     HStack {
                                         Text(product.displayPrice)
+                                            .bold()
                                         Text(product.displayName)
                                     }
                                 }

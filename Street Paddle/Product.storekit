@@ -87,7 +87,11 @@
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "1C277D1C",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "069819EA",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P2W"
+          },
           "localizations" : [
             {
               "description" : "Enjoy the fun",

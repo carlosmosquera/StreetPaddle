@@ -9,6 +9,10 @@ class StoreVM: ObservableObject {
     @Published private(set) var subscriptions: [Product] = []
     @Published private(set) var purchasedSubscriptions: [Product] = []
     @Published private(set) var subscriptionGroupStatus: RenewalState?
+    @Published private(set) var subscriptionDescription: String = ""
+    
+    private let trialPeriodDescription = "14-day free trial"
+    private let yearlyPrice = "$12.99/year"
     
     private let productionURL = "https://buy.itunes.apple.com/verifyReceipt"
     private let sandboxURL = "https://sandbox.itunes.apple.com/verifyReceipt"
@@ -24,6 +28,7 @@ class StoreVM: ObservableObject {
             await requestProducts()
             await updateCustomerProductStatus()
             await checkAndValidateReceipt() // Validate receipt during initialization
+            setupSubscriptionDescription() // Set trial and pricing info
         }
     }
     
@@ -31,6 +36,12 @@ class StoreVM: ObservableObject {
         updateListenerTask?.cancel()
     }
     
+    // Setup subscription description with trial and pricing info
+    private func setupSubscriptionDescription() {
+        DispatchQueue.main.async {
+            self.subscriptionDescription = "\(self.trialPeriodDescription), then \(self.yearlyPrice)"
+        }
+    }
     // Listen for transactions
     func listenForTransactions() -> Task<Void, Error> {
         return Task.detached {
@@ -73,6 +84,9 @@ class StoreVM: ObservableObject {
             
             // Always finish a transaction
             await transaction.finish()
+            
+            // Confirm trial and pricing info
+            print("You have started a 14-day free trial. After that, you will be charged \(yearlyPrice).")
             
             return transaction
         case .userCancelled, .pending:
@@ -185,6 +199,16 @@ class StoreVM: ObservableObject {
         
         if let status = jsonResponse["status"] as? Int, status != 0 {
             throw NSError(domain: "StoreVM", code: status, userInfo: [NSLocalizedDescriptionKey: "Receipt validation failed with status \(status)"])
+        }
+        
+        // Check for trial information
+        if let receipt = jsonResponse["receipt"] as? [String: Any],
+           let inApp = receipt["in_app"] as? [[String: Any]] {
+            for purchase in inApp {
+                if let isTrial = purchase["is_trial_period"] as? String, isTrial == "true" {
+                    print("This subscription includes a free trial.")
+                }
+            }
         }
     }
     
