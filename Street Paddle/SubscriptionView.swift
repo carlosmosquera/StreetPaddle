@@ -5,110 +5,112 @@ struct SubscriptionView: View {
     @EnvironmentObject var storeVM: StoreVM
     @State var isPurchased = false
 
+    // Customizable horizontal offset
+    @State private var xOffset: CGFloat = -20 // Adjust this value to move content left or right
+
     var body: some View {
-        ZStack {
-            // Background styling
-            Image("court")
-                .resizable()
-                .opacity(0.3)
-                .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                // Background
+                Image("court")
+                    .resizable()
+                    .scaledToFill()
+                    .opacity(0.3)
+                    .ignoresSafeArea()
 
-            VStack {
-                Text("STREET PADDLE")
-                    .font(.custom("Longhaul", size: 45))
-                    .offset(y: -40)
-                
-                Text("Unlock exclusive features with a yearly subscription!")
-                    .font(.system(size: 13, weight: .medium))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Title
+                        Text("STREET PADDLE")
+                            .font(.custom("Longhaul", size: geometry.size.width * 0.1))
+                            .multilineTextAlignment(.center)
 
-                Text("Subscription Details:")
-                    .font(.system(size: 13, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 5)
+                        // Subscription Message
+                        Text("Unlock exclusive features with a yearly subscription!")
+                            .font(.system(size: 14, weight: .medium))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, geometry.size.width * 0.05)
 
-                Text("14-day free trial, then $12.99/year.")
-                    .font(.system(size: 13))
-                    .foregroundColor(.green)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 2)
+                        // Subscription Details
+                        VStack(spacing: 10) {
+                            Text("Subscription Details:")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("14-day free trial, then $12.99/year.")
+                                .font(.system(size: 14))
+                                .foregroundColor(.green)
+                        }
 
-                Text("Benefits include:")
-                    .font(.system(size: 13, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 5)
+                        // Benefits List
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Benefits include:")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("• Full access to all content and updates.")
+                            Text("• Tournament draws and scheduling.")
+                            Text("• Access to new features and enhancements.")
+                            Text("• Check-in at the courts. All Ad-free.")
+                        }
+                        .font(.system(size: 14))
+                        .padding(.horizontal, geometry.size.width * 0.05)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("• Full access to all content and updates.")
-                    Text("• Tournament draws and scheduling.")
-                    Text("• Access to new features and enhancements.")
-                    Text("• Check-in at the courts. All Ad-free.")
-                }
-                .font(.system(size: 13))
-                .padding(.horizontal, 20)
-                
-                Text("A yearly subscription is required to access the content of the app.")
-                    .font(.system(size: 13, weight: .medium))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
+                        // CTA Message
+                        Text("A yearly subscription is required to access the content of the app.")
+                            .font(.system(size: 14, weight: .medium))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, geometry.size.width * 0.05)
 
-                Group {
-                    Section("See you at the pop tennis courts!") {
-                        ForEach(storeVM.subscriptions) { product in
-                            Button(action: {
-                                Task {
+                        // Subscription Button
+                        Button(action: {
+                            Task {
+                                if let product = storeVM.subscriptions.first {
                                     await buy(product: product)
                                 }
-                            }) {
-                                VStack {
-                                    Text(storeVM.subscriptionDescription)
-                                        .font(.system(size: 12))
-                                        .padding(.bottom, 5)
-                                    HStack {
-                                        Text(product.displayPrice)
-                                            .bold()
-                                        Text(product.displayName)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(15.0)
                             }
-                            .foregroundColor(.white)
+                        }) {
+                            VStack(spacing: 2) {
+                                Text("14-day free trial")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.white)
+                                
+                                Text("$12.99 Yearly")
+                                    .bold()
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.white)
+                            }
+                            .frame(width: geometry.size.width * 0.7, height: 60)
+                            .background(Color.blue)
+                            .cornerRadius(10)
                         }
-                    }
-                }
+                        .frame(maxWidth: .infinity, alignment: .center)
 
-                // Privacy Policy link
-                HStack {
-                    Link("Privacy Policy", destination: URL(string: "https://www.termsfeed.com/live/f0c1ded7-480c-46b6-83b1-5d20fec86a53")!)
-                        .foregroundColor(.blue)
-                    
-                    Text("|")
-                        .foregroundColor(.gray)
-                    
-                    Link("Terms & Conditions", destination: URL(string: "https://streetpaddle.co/terms-conditions/")!)
-                        .foregroundColor(.blue)
-                }
-                .padding(.top, 20)
-                
-                // Restore Purchases link
-                Button("Restore Purchases") {
-                    Task {
-                        await storeVM.restorePurchases()
+                        // Privacy and Restore Section
+                        VStack(spacing: 10) {
+                            HStack(spacing: 5) {
+                                Link("Privacy Policy", destination: URL(string: "https://www.termsfeed.com/live/f0c1ded7-480c-46b6-83b1-5d20fec86a53")!)
+                                Text("|")
+                                    .foregroundColor(.gray)
+                                Link("Terms & Conditions", destination: URL(string: "https://streetpaddle.co/terms-conditions/")!)
+                            }
+                            .foregroundColor(.blue)
+                            .font(.system(size: 12))
+
+                            Button("Restore Purchases") {
+                                Task { await storeVM.restorePurchases() }
+                            }
+                            .foregroundColor(.blue)
+                            .font(.system(size: 12))
+                        }
+
+                        // Endless Tennis Game View
+                        EndlessTennisGameView()
+                            .frame(width: geometry.size.width * 0.8, height: geometry.size.height * 0.3)
+                            .padding(.top, 10)
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .padding(.bottom, 40)
+                    .offset(x: xOffset) // Apply the horizontal offset
                 }
-                .foregroundColor(.blue)
-                .padding(.top, 10)
-                
-                // Add the endless tennis game view here
-                EndlessTennisGameView()
-                    .frame(height: 300)
-                    .padding(.top, 20)
+                .frame(width: geometry.size.width, height: geometry.size.height)
             }
         }
     }
@@ -123,8 +125,6 @@ struct SubscriptionView: View {
         }
     }
 }
-
-
 // Simple endless tennis game view
 struct EndlessTennisGameView: View {
     @State private var ballPosition = CGPoint(x: 150, y: 150)
