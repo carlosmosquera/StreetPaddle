@@ -18,7 +18,7 @@ struct ProfileView: View {
     @Binding var isUserAuthenticated: Bool // Binding to manage authentication state
     var userId: String
     @State private var showDeleteConfirmation: Bool = false // State variable for alert
-    
+
     var body: some View {
         VStack {
             Text("Profile")
@@ -26,22 +26,43 @@ struct ProfileView: View {
                 .padding()
 
             // Profile Image Section
-            if let profileImage = profileImage {
-                Image(uiImage: profileImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 150, height: 150)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.gray, lineWidth: 4))
-                    .shadow(radius: 10)
-                    .padding()
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 150, height: 150)
-                    .clipShape(Circle())
-                    .padding()
+            ZStack {
+                if let profileImage = profileImage {
+                    Image(uiImage: profileImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 150, height: 150)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.gray, lineWidth: 4))
+                        .shadow(radius: 10)
+                        .padding()
+                } else {
+                    Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 150, height: 150)
+                        .clipShape(Circle())
+                        .padding()
+                }
+
+                // Tap overlay
+                if isCurrentUser {
+                    Button(action: {
+                        showImagePicker = true
+                    }) {
+                        Circle()
+                            .fill(Color.black.opacity(0.4))
+                            .frame(width: 150, height: 150)
+                            .overlay(
+                                Text("Edit")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            )
+                    }
+                }
+            }
+            .sheet(isPresented: $showImagePicker) {
+                ImagePicker(image: $profileImage, onImagePicked: uploadImageToStorage)
             }
 
             // Profile Information
@@ -101,9 +122,6 @@ struct ProfileView: View {
             }
         }
         .onAppear(perform: fetchProfileData)
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $profileImage, onImagePicked: uploadImageToStorage)
-        }
     }
     
     // Fetch profile data from Firestore
@@ -151,10 +169,8 @@ struct ProfileView: View {
     func deleteAccount() {
         guard let currentUser = Auth.auth().currentUser else { return }
 
-        // Reference to Firestore
         let db = Firestore.firestore()
         
-        // Deleting the user's document from Firestore
         db.collection("users").document(currentUser.uid).delete { error in
             if let error = error {
                 print("Error deleting Firestore document: \(error.localizedDescription)")
@@ -162,16 +178,13 @@ struct ProfileView: View {
                 print("Firestore document successfully deleted")
             }
             
-            // Proceed to delete the Firebase Auth account
             currentUser.delete { error in
                 if let error = error {
                     print("Error deleting account: \(error.localizedDescription)")
                 } else {
-                    // Log out the user after successful account deletion
                     do {
                         try Auth.auth().signOut()
-                        isUserAuthenticated = false // Update the authentication state
-                        // Navigate to LoginView or handle navigation here
+                        isUserAuthenticated = false
                     } catch {
                         print("Error signing out: \(error.localizedDescription)")
                     }
