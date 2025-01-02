@@ -109,7 +109,6 @@ struct MainView: View {
                         .background(Color.orange)
                         .cornerRadius(15.0)
                     }
-                    
                     // Friends, Tournaments, and other buttons
                     NavigationLink(destination: FriendsListView()) {
                         HStack {
@@ -227,30 +226,28 @@ struct MainView: View {
                     return
                 }
                 
-                DispatchQueue.global(qos: .background).async { // Handle updates in the background
+                DispatchQueue.global(qos: .background).async {
                     var totalUnread = 0
-                    
-                    let dispatchGroup = DispatchGroup() // Ensure all unread counts are fetched before updating the badge
-                    
+                    let dispatchGroup = DispatchGroup()
+
                     snapshot?.documents.forEach { document in
                         let groupId = document.documentID
-                        dispatchGroup.enter() // Enter the group before each fetch
+                        dispatchGroup.enter()
                         self.fetchUnreadCount(for: groupId) { unreadCount in
+                            print("Group \(groupId) unread count: \(unreadCount)") // Debug log
                             totalUnread += unreadCount
-                            dispatchGroup.leave() // Leave when done
+                            dispatchGroup.leave()
                         }
                     }
-                    
-                    // Wait for all fetches to finish
+
                     dispatchGroup.notify(queue: .main) {
+                        print("Total unread messages: \(totalUnread)") // Debug log
                         self.unreadMessagesCount = totalUnread
-                        self.updateAppBadge()  // Update the badge once all counts are processed
+                        self.updateAppBadge()
                     }
                 }
             }
-    }
-
-    // Fetch unread count for each group chat
+    }    // Fetch unread count for each group chat
     func fetchUnreadCount(for groupChatId: String, completion: @escaping (Int) -> Void) {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
@@ -420,7 +417,7 @@ struct MainView: View {
 
     func checkIfAdmin() {
         guard let user = Auth.auth().currentUser else { return }
-        let allowedEmails = ["carlosmosquera.r@gmail.com", "avillaronga96@gmail.com"]
+        let allowedEmails = ["carlosmosquera.r@gmail.com", "info@streetpaddle.com"]
         let db = Firestore.firestore()
         
         db.collection("users").document(user.uid).getDocument { document, error in

@@ -13,7 +13,7 @@ class ChatManager: ObservableObject {
 
         db.collection("groups")
             .whereField("members", arrayContains: userId)
-            .getDocuments { snapshot, error in
+            .addSnapshotListener { snapshot, error in
                 if let error = error {
                     print("Error fetching groups: \(error)")
                     return
@@ -22,8 +22,8 @@ class ChatManager: ObservableObject {
                 guard let documents = snapshot?.documents else { return }
 
                 var updatedGroupChats = [GroupChat]()
-                var newTotalUnreadCount = 0  // Initialize total unread count
-                var directChatGroups: [String: GroupChat] = [:] // Store direct chats by recipient name
+                var newTotalUnreadCount = 0
+                var directChatGroups: [String: GroupChat] = [:]
 
                 let dispatchGroup = DispatchGroup()
 
@@ -31,16 +31,15 @@ class ChatManager: ObservableObject {
                     var groupChat = try? document.data(as: GroupChat.self)
                     if let groupChatId = groupChat?.id {
                         dispatchGroup.enter()
-                        self.fetchUnreadCount(for: groupChatId, userId: userId) { unreadCount in
-                            groupChat?.unreadCount = unreadCount
 
-                            // Accumulate the unread counts for all chats
+                        // Set up a listener for unread count
+                        self.listenForUnreadCount(for: groupChatId, userId: userId) { unreadCount in
+                            groupChat?.unreadCount = unreadCount
                             newTotalUnreadCount += unreadCount
 
                             if let groupChat = groupChat, groupChat.members.count == 2 {
                                 let recipientName = self.getDirectChatRecipientName(for: groupChat, currentUserID: userId)
                                 if let existingChat = directChatGroups[recipientName] {
-                                    // Merge chats if a direct chat with the same recipient exists
                                     self.mergeGroupChats(existingChat: existingChat, newChat: groupChat) { mergedChat in
                                         directChatGroups[recipientName] = mergedChat
                                     }
@@ -57,14 +56,49 @@ class ChatManager: ObservableObject {
                 }
 
                 dispatchGroup.notify(queue: .main) {
-                    // Add merged direct chats to the final list
                     updatedGroupChats.append(contentsOf: directChatGroups.values)
                     self.groupChats = updatedGroupChats
-                    self.totalUnreadCount = newTotalUnreadCount  // Update total unread count
+                    self.totalUnreadCount = newTotalUnreadCount
                 }
             }
     }
+    
+    
 
+    
+    private func listenForUnreadCount(for groupChatId: String, userId: String, completion: @escaping (Int) -> Void) {
+        let userLastReadDocRef = db.collection("groups").document(groupChatId).collection("members").document(userId)
+
+        userLastReadDocRef.addSnapshotListener { documentSnapshot, error in
+            if let error = error {
+                print("Error setting up unread count listener: \(error.localizedDescription)")
+                completion(0)
+                return
+            }
+
+            guard let document = documentSnapshot,
+                  let data = document.data(),
+                  let lastReadTimestamp = data["lastReadTimestamp"] as? Timestamp else {
+                print("Missing lastReadTimestamp or invalid document")
+                completion(0)
+                return
+            }
+
+            var query: Query = self.db.collection("groups").document(groupChatId).collection("groupmessages")
+            query = query.whereField("timestamp", isGreaterThan: lastReadTimestamp)
+
+            query.addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error fetching unread messages: \(error.localizedDescription)")
+                    completion(0)
+                    return
+                }
+
+                let unreadCount = snapshot?.documents.count ?? 0
+                completion(unreadCount)
+            }
+        }
+    }
 
 
     private func getDirectChatRecipientName(for groupChat: GroupChat, currentUserID: String) -> String {
