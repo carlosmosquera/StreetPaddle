@@ -1,12 +1,24 @@
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
+import UserNotifications
+
 
 class ChatManager: ObservableObject {
     @Published var groupChats: [GroupChat] = []
-    @Published var totalUnreadCount: Int = 0
+    @Published var totalUnreadCount: Int = 0 {
+        didSet {
+            print("Updating badge number to: \(self.totalUnreadCount)") // Debug log
+            DispatchQueue.main.async {
+                UIApplication.shared.applicationIconBadgeNumber = self.totalUnreadCount
+            }
+        }
+    }
     private var db = Firestore.firestore()
     private var userNamesCache: [String: String] = [:] // Cache to store user names
+    
+    
+    
 
     func fetchGroupChats() {
         guard let userId = Auth.auth().currentUser?.uid else { return }

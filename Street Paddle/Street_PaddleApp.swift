@@ -13,11 +13,14 @@ import UserNotifications
 struct Street_PaddleApp: App {
     @StateObject private var notificationManager = NotificationManager() // Create an instance of NotificationManager
 
-    
     init() {
         FirebaseApp.configure()
         
         // Request permission to show badges and notifications
+        requestNotificationPermissions()
+    }
+    
+    private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.badge, .alert, .sound]) { granted, error in
             if let error = error {
                 print("Notification permission error: \(error)")
@@ -26,6 +29,8 @@ struct Street_PaddleApp: App {
                 DispatchQueue.main.async {
                     UIApplication.shared.registerForRemoteNotifications()
                 }
+            } else {
+                print("Notification permissions not granted.")
             }
         }
     }
@@ -34,7 +39,6 @@ struct Street_PaddleApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(notificationManager) // Provide the notification manager to the environment
-
         }
     }
 }
